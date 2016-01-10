@@ -536,7 +536,7 @@ a {
   cursor: pointer;
   text-transform: uppercase;
   float: none;
-  min-height: 150px;
+  min-height: 80px;
   margin-left: -12px;
   text-align: center;
   display: -webkit-box;
@@ -850,6 +850,10 @@ a {
   max-width: 83px;
   padding-left: 8px;
   font-size: 12px;
+}
+.img-center {
+  display: block;
+  margin: auto;
 }
 .body-wrap {
   margin-bottom: 80px;
