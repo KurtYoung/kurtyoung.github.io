@@ -4,19 +4,19 @@
   <meta charset="utf-8">
   
   <meta http-equiv="X-UA-Compatible" content="IE=edge" >
-  <title>KurtYoung的个人博客</title>
+  <title>Kurt&#39;s blog</title>
   <meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1">
-  <meta name="description" content="一枚码农">
+  <meta name="description" content="码农，Data nerd">
 <meta property="og:type" content="website">
-<meta property="og:title" content="KurtYoung的个人博客">
+<meta property="og:title" content="Kurt's blog">
 <meta property="og:url" content="http://kurtyoung.github.io/index.html">
-<meta property="og:site_name" content="KurtYoung的个人博客">
-<meta property="og:description" content="一枚码农">
+<meta property="og:site_name" content="Kurt's blog">
+<meta property="og:description" content="码农，Data nerd">
 <meta name="twitter:card" content="summary">
-<meta name="twitter:title" content="KurtYoung的个人博客">
-<meta name="twitter:description" content="一枚码农">
+<meta name="twitter:title" content="Kurt's blog">
+<meta name="twitter:description" content="码农，Data nerd">
   
-    <link rel="alternative" href="/atom.xml" title="KurtYoung的个人博客" type="application/atom+xml">
+    <link rel="alternative" href="/atom.xml" title="Kurt&#39;s blog" type="application/atom+xml">
   
   
     <link rel="icon" href="/favicon.png">
@@ -32,7 +32,7 @@
 	<header id="header" class="inner">
 		<a href="/" class="profilepic">
 			
-			<img lazy-src="ykt836@gmail.com" class="js-avatar">
+			<img lazy-src="/images/kurt.jpg" class="js-avatar">
 			
 		</a>
 
@@ -105,7 +105,7 @@
 				
 				<section class="switch-part switch-part2">
 					<div class="widget tagcloud" id="js-tagcloud">
-						
+						<a href="/tags/architecture/" style="font-size: 10px;">architecture</a> <a href="/tags/笔记/" style="font-size: 10px;">笔记</a>
 					</div>
 				</section>
 				
@@ -135,7 +135,7 @@
 		<header id="header" class="inner">
 			<div class="profilepic">
 			
-				<img lazy-src="ykt836@gmail.com" class="js-avatar">
+				<img lazy-src="/images/kurt.jpg" class="js-avatar">
 			
 			</div>
 			<hgroup>
@@ -168,6 +168,75 @@
 </nav>
 
       <div class="body-wrap">
+  
+    <article id="post-lambda-architecture" class="article article-type-post" itemscope itemprop="blogPost">
+  
+    <div class="article-meta">
+      <a href="/2016/01/09/lambda-architecture/" class="article-date">
+  	<time datetime="2016-01-09T13:46:22.000Z" itemprop="datePublished">2016-01-09</time>
+</a>
+    </div>
+  
+  <div class="article-inner">
+    
+      <input type="hidden" class="isFancy" />
+    
+    
+      <header class="article-header">
+        
+  
+    <h1 itemprop="name">
+      <a class="article-title" href="/2016/01/09/lambda-architecture/">Lambda Architecture - 如何突破CAP理论的限制</a>
+    </h1>
+  
+
+      </header>
+      
+    
+    <div class="article-entry" itemprop="articleBody">
+      
+        <p>原文链接：<a href="http://nathanmarz.com/blog/how-to-beat-the-cap-theorem.html">http://nathanmarz.com/blog/how-to-beat-the-cap-theorem.html</a></p>
+<h1 id="CAP_u7406_u8BBA"><a href="#CAP_u7406_u8BBA" class="headerlink" title="CAP理论"></a>CAP理论</h1><p>CAP理论决定了一个分布式系统注定不能同时获得一致性(consistency)， 可用性(availability)和分区容忍性(partition-tolerance)。一般对于分布式系统来说，分区容忍性是一定不能牺牲的（谁还没个网络出错，断电的时候），那么我们能做的也就是在一致性和可用性之间做权衡了：</p>
+<ul>
+<li>选择一致性：那么系统不可用时怎么办？假如一个写请求失败了，客户端要么可以把这些失败的请求buffer起来一会再重试，但这样就得承担buffer数据丢失的风险，同时如果重试对用户不可见的话，其实也变相的破坏了一致性：用户觉得写入已经成功了但其实还没有。或者就是干脆返回出错，让用户迟点再重试，这样的话用户体验也会比较糟。</li>
+<li>选择可用性：同时对用户保证最终一致性。但这样的话不同的用户在相同的时候就有可能读到不同的值（多副本的情况），客户端需要在发现这种情况的时候进行处理，比如查看操作日志还原真实的值，这种代码一般都比较难写还容易出bug。同时最终一致性也不是一个轻松能实现的特性，对开发人员来讲也是个不小的负担。</li>
+</ul>
+<p><strong>那么问题来了</strong>：分区容忍不能丢，一致性和可用性选哪个都不是，那让人怎么办？这时作者开始提出一种Data System的设计思路，不光能较好的解决CAP的限制同时将复杂度控制的比较低，更能解决软件设计中常常被人忽视的另外一种错误：人为错误。</p>
+<h1 id="u4EC0_u4E48_u662FData_System"><a href="#u4EC0_u4E48_u662FData_System" class="headerlink" title="什么是Data System"></a>什么是Data System</h1><p>这里作者提出了所有和数据打交道的系统都可以抽象成下面这个公式，不管你是数据库，indexing，OLTP，OLAP，MapReduce等等：</p>
+<figure class="highlight fortran"><table><tr><td class="gutter"><pre><span class="line">1</span><br></pre></td><td class="code"><pre><span class="line">Query = <span class="function"><span class="keyword">Function</span><span class="params">(All Data)</span></span></span><br></pre></td></tr></table></figure>
+<p>看着确实很宽泛，但却是一个设计思路的起点。<br>
+      
+    </div>
+    
+    <div class="article-info article-info-index">
+      
+      
+	<div class="article-tag tagcloud">
+		<ul class="article-tag-list"><li class="article-tag-list-item"><a class="article-tag-list-link" href="/tags/architecture/">architecture</a></li><li class="article-tag-list-item"><a class="article-tag-list-link" href="/tags/笔记/">笔记</a></li></ul>
+	</div>
+
+      
+
+      
+        <p class="article-more-link">
+          <a  href="/2016/01/09/lambda-architecture/#more">more >></a>
+        </p>
+      
+      <div class="clearfix"></div>
+    </div>
+    
+  </div>
+  
+</article>
+
+
+
+
+
+
+
+
+
   
     <article id="post-hello-world" class="article article-type-post" itemscope itemprop="blogPost">
   

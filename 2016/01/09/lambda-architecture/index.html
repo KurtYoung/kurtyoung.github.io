@@ -1,0 +1,391 @@
+<!DOCTYPE html>
+<html>
+<head>
+  <meta charset="utf-8">
+  
+  <meta http-equiv="X-UA-Compatible" content="IE=edge" >
+  <title>Lambda Architecture - 如何突破CAP理论的限制 | Kurt&#39;s blog</title>
+  <meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1">
+  <meta name="description" content="原文链接：http://nathanmarz.com/blog/how-to-beat-the-cap-theorem.html
+CAP理论CAP理论决定了一个分布式系统注定不能同时获得一致性(consistency)， 可用性(availability)和分区容忍性(partition-tolerance)。一般对于分布式系统来说，分区容忍性是一定不能牺牲的（谁还没个网络出错，断电的时候），那么">
+<meta property="og:type" content="article">
+<meta property="og:title" content="Lambda Architecture - 如何突破CAP理论的限制">
+<meta property="og:url" content="http://kurtyoung.github.io/2016/01/09/lambda-architecture/index.html">
+<meta property="og:site_name" content="Kurt's blog">
+<meta property="og:description" content="原文链接：http://nathanmarz.com/blog/how-to-beat-the-cap-theorem.html
+CAP理论CAP理论决定了一个分布式系统注定不能同时获得一致性(consistency)， 可用性(availability)和分区容忍性(partition-tolerance)。一般对于分布式系统来说，分区容忍性是一定不能牺牲的（谁还没个网络出错，断电的时候），那么">
+<meta property="og:image" content="http://kurtyoung.github.io/images/precomputation.png">
+<meta property="og:image" content="http://kurtyoung.github.io/images/batch_realtime_example.png">
+<meta property="og:updated_time" content="2016-01-10T07:24:40.000Z">
+<meta name="twitter:card" content="summary">
+<meta name="twitter:title" content="Lambda Architecture - 如何突破CAP理论的限制">
+<meta name="twitter:description" content="原文链接：http://nathanmarz.com/blog/how-to-beat-the-cap-theorem.html
+CAP理论CAP理论决定了一个分布式系统注定不能同时获得一致性(consistency)， 可用性(availability)和分区容忍性(partition-tolerance)。一般对于分布式系统来说，分区容忍性是一定不能牺牲的（谁还没个网络出错，断电的时候），那么">
+  
+    <link rel="alternative" href="/atom.xml" title="Kurt&#39;s blog" type="application/atom+xml">
+  
+  
+    <link rel="icon" href="/favicon.png">
+  
+  <link rel="stylesheet" href="/css/style.css" type="text/css">
+</head>
+
+<body>
+  <div id="container">
+    <div class="left-col">
+    <div class="overlay"></div>
+<div class="intrude-less">
+	<header id="header" class="inner">
+		<a href="/" class="profilepic">
+			
+			<img lazy-src="/images/kurt.jpg" class="js-avatar">
+			
+		</a>
+
+		<hgroup>
+		  <h1 class="header-author"><a href="/">Kurt Young</a></h1>
+		</hgroup>
+
+		
+		<p class="header-subtitle">一枚码农</p>
+		
+
+		
+			<div class="switch-btn">
+				<div class="icon">
+					<div class="icon-ctn">
+						<div class="icon-wrap icon-house" data-idx="0">
+							<div class="birdhouse"></div>
+							<div class="birdhouse_holes"></div>
+						</div>
+						<div class="icon-wrap icon-ribbon hide" data-idx="1">
+							<div class="ribbon"></div>
+						</div>
+						
+						
+						<div class="icon-wrap icon-me hide" data-idx="3">
+							<div class="user"></div>
+							<div class="shoulder"></div>
+						</div>
+						
+					</div>
+					
+				</div>
+				<div class="tips-box hide">
+					<div class="tips-arrow"></div>
+					<ul class="tips-inner">
+						<li>菜单</li>
+						<li>标签</li>
+						
+						
+						<li>关于我</li>
+						
+					</ul>
+				</div>
+			</div>
+		
+
+		<div class="switch-area">
+			<div class="switch-wrap">
+				<section class="switch-part switch-part1">
+					<nav class="header-menu">
+						<ul>
+						
+							<li><a href="/">主页</a></li>
+				        
+							<li><a href="/archives">所有文章</a></li>
+				        
+						</ul>
+					</nav>
+					<nav class="header-nav">
+						<div class="social">
+							
+								<a class="github" target="_blank" href="https://github.com/KurtYoung" title="github">github</a>
+					        
+								<a class="weibo" target="_blank" href="http://weibo.com/yangkete" title="weibo">weibo</a>
+					        
+						</div>
+					</nav>
+				</section>
+				
+				
+				<section class="switch-part switch-part2">
+					<div class="widget tagcloud" id="js-tagcloud">
+						<a href="/tags/architecture/" style="font-size: 10px;">architecture</a> <a href="/tags/笔记/" style="font-size: 10px;">笔记</a>
+					</div>
+				</section>
+				
+				
+				
+
+				
+				
+				<section class="switch-part switch-part3">
+				
+					<div id="js-aboutme">一枚码农</div>
+				</section>
+				
+			</div>
+		</div>
+	</header>				
+</div>
+
+    </div>
+    <div class="mid-col">
+      <nav id="mobile-nav">
+  	<div class="overlay">
+  		<div class="slider-trigger"></div>
+  		<h1 class="header-author js-mobile-header hide">Kurt Young</h1>
+  	</div>
+	<div class="intrude-less">
+		<header id="header" class="inner">
+			<div class="profilepic">
+			
+				<img lazy-src="/images/kurt.jpg" class="js-avatar">
+			
+			</div>
+			<hgroup>
+			  <h1 class="header-author">Kurt Young</h1>
+			</hgroup>
+			
+			<p class="header-subtitle">一枚码农</p>
+			
+			<nav class="header-menu">
+				<ul>
+				
+					<li><a href="/">主页</a></li>
+		        
+					<li><a href="/archives">所有文章</a></li>
+		        
+		        <div class="clearfix"></div>
+				</ul>
+			</nav>
+			<nav class="header-nav">
+				<div class="social">
+					
+						<a class="github" target="_blank" href="https://github.com/KurtYoung" title="github">github</a>
+			        
+						<a class="weibo" target="_blank" href="http://weibo.com/yangkete" title="weibo">weibo</a>
+			        
+				</div>
+			</nav>
+		</header>				
+	</div>
+</nav>
+
+      <div class="body-wrap"><article id="post-lambda-architecture" class="article article-type-post" itemscope itemprop="blogPost">
+  
+    <div class="article-meta">
+      <a href="/2016/01/09/lambda-architecture/" class="article-date">
+  	<time datetime="2016-01-09T13:46:22.000Z" itemprop="datePublished">2016-01-09</time>
+</a>
+    </div>
+  
+  <div class="article-inner">
+    
+      <input type="hidden" class="isFancy" />
+    
+    
+      <header class="article-header">
+        
+  
+    <h1 class="article-title" itemprop="name">
+      Lambda Architecture - 如何突破CAP理论的限制
+    </h1>
+  
+
+      </header>
+      
+      <div class="article-info article-info-post">
+        
+	<div class="article-tag tagcloud">
+		<ul class="article-tag-list"><li class="article-tag-list-item"><a class="article-tag-list-link" href="/tags/architecture/">architecture</a></li><li class="article-tag-list-item"><a class="article-tag-list-link" href="/tags/笔记/">笔记</a></li></ul>
+	</div>
+
+        
+
+        <div class="clearfix"></div>
+      </div>
+      
+    
+    <div class="article-entry" itemprop="articleBody">
+      
+        <p>原文链接：<a href="http://nathanmarz.com/blog/how-to-beat-the-cap-theorem.html" target="_blank" rel="external">http://nathanmarz.com/blog/how-to-beat-the-cap-theorem.html</a></p>
+<h1 id="CAP_u7406_u8BBA"><a href="#CAP_u7406_u8BBA" class="headerlink" title="CAP理论"></a>CAP理论</h1><p>CAP理论决定了一个分布式系统注定不能同时获得一致性(consistency)， 可用性(availability)和分区容忍性(partition-tolerance)。一般对于分布式系统来说，分区容忍性是一定不能牺牲的（谁还没个网络出错，断电的时候），那么我们能做的也就是在一致性和可用性之间做权衡了：</p>
+<ul>
+<li>选择一致性：那么系统不可用时怎么办？假如一个写请求失败了，客户端要么可以把这些失败的请求buffer起来一会再重试，但这样就得承担buffer数据丢失的风险，同时如果重试对用户不可见的话，其实也变相的破坏了一致性：用户觉得写入已经成功了但其实还没有。或者就是干脆返回出错，让用户迟点再重试，这样的话用户体验也会比较糟。</li>
+<li>选择可用性：同时对用户保证最终一致性。但这样的话不同的用户在相同的时候就有可能读到不同的值（多副本的情况），客户端需要在发现这种情况的时候进行处理，比如查看操作日志还原真实的值，这种代码一般都比较难写还容易出bug。同时最终一致性也不是一个轻松能实现的特性，对开发人员来讲也是个不小的负担。</li>
+</ul>
+<p><strong>那么问题来了</strong>：分区容忍不能丢，一致性和可用性选哪个都不是，那让人怎么办？这时作者开始提出一种Data System的设计思路，不光能较好的解决CAP的限制同时将复杂度控制的比较低，更能解决软件设计中常常被人忽视的另外一种错误：人为错误。</p>
+<h1 id="u4EC0_u4E48_u662FData_System"><a href="#u4EC0_u4E48_u662FData_System" class="headerlink" title="什么是Data System"></a>什么是Data System</h1><p>这里作者提出了所有和数据打交道的系统都可以抽象成下面这个公式，不管你是数据库，indexing，OLTP，OLAP，MapReduce等等：</p>
+<figure class="highlight fortran"><table><tr><td class="gutter"><pre><span class="line">1</span><br></pre></td><td class="code"><pre><span class="line">Query = <span class="function"><span class="keyword">Function</span><span class="params">(All Data)</span></span></span><br></pre></td></tr></table></figure>
+<p>看着确实很宽泛，但却是一个设计思路的起点。<br><a id="more"></a></p>
+<h2 id="Data"><a href="#Data" class="headerlink" title="Data"></a>Data</h2><p>数据（Data）是一个不管怎么样都真实存在的不可分割的单元，就像数学中的公理一样。数据有以下两个特点：</p>
+<ul>
+<li>数据是基于时间的：数据总是在某一个特定的时间点成立。比如你以前住在北京，现在刚搬到了上海。那么这里的两条数据：你曾经在某个时间点住在北京和现在住在上海都是成立的，他们互相不干扰。</li>
+<li>数据是不可变的：延续上一条的假设，这个特点就比较好理解了。有一个比较类似的说法是：人不能两次踏进同一条河流。</li>
+</ul>
+<p>借助于这两个特点，我们平时接受的比较多的CRUD（增删改查）其实就只剩下了C和R，改和删无非就是再插入一条新的数据罢了。</p>
+<h2 id="Query"><a href="#Query" class="headerlink" title="Query"></a>Query</h2><p>Query就是从所有的数据中获取你想要的信息，也可以抽象的理解为在所有的数据集上的一个函数运算。</p>
+<h1 id="u201C_u51FB_u8D25_u201DCAP_u7406_u8BBA"><a href="#u201C_u51FB_u8D25_u201DCAP_u7406_u8BBA" class="headerlink" title="“击败”CAP理论"></a>“击败”CAP理论</h1><p>假如我们有能力在每个query来的时候，都能快速的对所有数据进行计算或者用户能容忍这种高延时，那么这种系统将能够“击败”CAP理论（这里说的击败并不是说这样的系统已经不受CAP理论的限制）。CAP理论仍然成立，你还是不能兼得三个特性，但是你只需要确定好自己需要CAP中的哪两个特性，那么这个系统就能够自然而然的帮你做到。如果你选择高一致性，那么在系统不可用的时候你也只能够接受这一点。如果你选择高可用性，那么系统将能自然而然的做到最终一致性（因为高可用，你总是能一直写入新的数据，系统也总是能最终达到一致）。这里有个原因是数据是不可变的，对于不可变的数据就没有更新一说，同时也没有了用户会看到不同的数据一说。对于一个query来说，一份数据要么存在，要么就不存在，不需要处理各种复杂的一致性情况。<br>当然这还只是一些理想的情形，大部分情况下系统也无法做到对个query都进行全量计算，但至少我们学到了这种系统的关键特性是什么：</p>
+<ol>
+<li>数据的不可变性能方便系统进行处理和扩展</li>
+<li>主要的写操作就是增加新的不可变的数据</li>
+<li>每次重新计算全量数据能有效防止引入CAP带来的复杂度</li>
+<li>系统可以使用一些增量算法来将查询的延迟降低到可接受的程度</li>
+</ol>
+<h1 id="u6279_u91CF_u8BA1_u7B97"><a href="#u6279_u91CF_u8BA1_u7B97" class="headerlink" title="批量计算"></a>批量计算</h1><p>毕竟每个query都对计算一遍所有数据不现实，那么一种可行的优化手段是我们预先把query的结果算好，每当一个新的数据来的时候，我们就遍历一遍所有的数据，把可能的query的结果计算好并存储在另外一个系统中供用户查询。可能每次全量计算一遍的代价和延迟都很大，目前我们可以先忽略这一点，等之后再慢慢收紧这些要求。这样的系统会长成这个样子：<br><img src="/images/precomputation.png" alt=""></p>
+<p>这样的系统需要具有以下两个特点：</p>
+<ol>
+<li>可以轻松的存储海量且一直增长的数据</li>
+<li>可以对海量数据集做高效的分布式计算</li>
+</ol>
+<p>好吧，这玩意就是现在的Hadoop，以上两点分别对应HDFS和MapReduce。这种系统的好处是你几乎可以在全量数据集上做任何你想要的计算，而且简单，扩展性强。缺点也比较明显，计算的代价大，延时高。那么这种系统怎么解决上述提高的人为错误的问题呢？基本上在这种系统之上，人能犯的错误也就以下两种：</p>
+<ul>
+<li>query计算错了：重新部署一个正确的版本，然后把所有的计算用正确的版本再做一遍。</li>
+<li>写进了错误的数据：把新的数据写进去，再重新做一次全量的计算。</li>
+</ul>
+<h1 id="u5B9E_u65F6_u8BA1_u7B97"><a href="#u5B9E_u65F6_u8BA1_u7B97" class="headerlink" title="实时计算"></a>实时计算</h1><p>批量计算已经解决了大部分问题，那么现在剩下的就是批量计算没有覆盖到的范围：最近的一些数据。计算最近几小时的数据比计算所有数据显然已经简单的多，另外需要做的就是在查询的时候把批量和实时的结果进行合并。典型的结构如下：<br><img src="/images/batch_realtime_example.png" alt=""></p>
+<h1 id="u6279_u91CF+_u5B9E_u65F6"><a href="#u6279_u91CF+_u5B9E_u65F6" class="headerlink" title="批量+实时"></a>批量+实时</h1><p>看起来上图好像又把我们拉回到了起点，一个看起来挺复杂的系统，又要开始在CAP的三个选择之间纠结。但有一个最大的区别是，实时计算层虽然还是需要面对前面列举的问题，但这样做能很好的将复杂度全部隔离在里面。就算实时计算出了一些差错，批量计算总能带回来正确的结果。另外这样的系统设计还能带来这些额外的好处：</p>
+<ol>
+<li>算法选择的灵活性：有些算法比较复杂，比如精确的distinct count。那么我们可以选择在批量层做一些精确的计算，但是在实时层可以实现成速度较快但是有一定误差的算法。</li>
+<li>schema变更</li>
+<li>方便做ad-hoc分析</li>
+<li>数据自审计</li>
+</ol>
+<h1 id="u603B_u7ED3"><a href="#u603B_u7ED3" class="headerlink" title="总结"></a>总结</h1><p>很多人都想设计出扩展性更好的大数据系统，现在一些大数据和NoSql系统已经朝着越来越复杂的方向前进了。但很有可能是因为我们错误的对待了这些系统，我们把它当成关系型数据库一样去管理：把数据和视图混在一起，引入各种复杂的增量计算算法。这里作者提出了一种设计思路，把数据当成一种不变的一直自增长的东西，并且在核心层对全量数据进行周而复始的重新计算，使用实时计算来弥补系统实时性不足的问题。这样的系统设计对CAP理论带来的限制和人为可能的错误都有较好的应对方案，同时还能比较好的控制住系统的复杂度。这只是起点，作者还列举了一些他觉得未来可行的改进方向：</p>
+<ol>
+<li>扩展数据模型：不是所有的应用都能将数据弄成简单的kv模型</li>
+<li>更好的批量计算模型：hadoop很好，但肯定不是最好，我们还需要一直探索更好的批量计算模型（比如说spark）</li>
+<li>更好的NoSql数据库：不同的数据模型需要更多更好的NoSql数据库来服务</li>
+<li>更高层次的抽象</li>
+</ol>
+
+      
+    </div>
+    
+  </div>
+  
+    
+<nav id="article-nav">
+  
+  
+    <a href="/2016/01/03/hello-world/" id="article-nav-older" class="article-nav-link-wrap">
+      <div class="article-nav-title">Hello World</div>
+      <strong class="article-nav-caption">></strong>
+    </a>
+  
+</nav>
+
+  
+</article>
+
+
+<div class="share_jia">
+	<!-- JiaThis Button BEGIN -->
+	<div class="jiathis_style">
+		<span class="jiathis_txt">分享到: &nbsp; </span>
+		<a class="jiathis_button_facebook"></a> 
+    <a class="jiathis_button_twitter"></a>
+    <a class="jiathis_button_plus"></a> 
+    <a class="jiathis_button_tsina"></a>
+		<a class="jiathis_button_cqq"></a>
+		<a class="jiathis_button_douban"></a>
+		<a class="jiathis_button_weixin"></a>
+		<a class="jiathis_button_tumblr"></a>
+    <a href="http://www.jiathis.com/share" class="jiathis jiathis_txt jtico jtico_jiathis" target="_blank"></a>
+	</div>
+	<script type="text/javascript" src="http://v3.jiathis.com/code/jia.js?uid=1405949716054953" charset="utf-8"></script>
+	<!-- JiaThis Button END -->
+</div>
+
+
+
+
+
+
+<div class="duoshuo">
+	<!-- 多说评论框 start -->
+	<div class="ds-thread" data-thread-key="lambda-architecture" data-title="Lambda Architecture - 如何突破CAP理论的限制" data-url="http://kurtyoung.github.io/2016/01/09/lambda-architecture/"></div>
+	<!-- 多说评论框 end -->
+	<!-- 多说公共JS代码 start (一个网页只需插入一次) -->
+	<script type="text/javascript">
+	var duoshuoQuery = {short_name:"kurtyoung"};
+	(function() {
+		var ds = document.createElement('script');
+		ds.type = 'text/javascript';ds.async = true;
+		ds.src = (document.location.protocol == 'https:' ? 'https:' : 'http:') + '//static.duoshuo.com/embed.js';
+		ds.charset = 'UTF-8';
+		(document.getElementsByTagName('head')[0] 
+		 || document.getElementsByTagName('body')[0]).appendChild(ds);
+	})();
+	</script>
+	<!-- 多说公共JS代码 end -->
+</div>
+
+
+
+
+</div>
+      <footer id="footer">
+  <div class="outer">
+    <div id="footer-info">
+    	<div class="footer-left">
+    		&copy; 2016 Kurt Young
+    	</div>
+      	<div class="footer-right">
+      		<a href="http://hexo.io/" target="_blank">Hexo</a>  Theme <a href="https://github.com/litten/hexo-theme-yilia" target="_blank">Yilia</a> by Litten
+      	</div>
+    </div>
+  </div>
+</footer>
+    </div>
+    
+  <link rel="stylesheet" href="/fancybox/jquery.fancybox.css" type="text/css">
+
+
+<script>
+	var yiliaConfig = {
+		fancybox: true,
+		mathjax: true,
+		animate: true,
+		isHome: false,
+		isPost: true,
+		isArchive: false,
+		isTag: false,
+		isCategory: false,
+		open_in_new: false
+	}
+</script>
+<script src="http://7.url.cn/edu/jslib/comb/require-2.1.6,jquery-1.9.1.min.js" type="text/javascript"></script>
+<script src="/js/main.js" type="text/javascript"></script>
+
+
+
+
+
+
+<script type="text/x-mathjax-config">
+MathJax.Hub.Config({
+    tex2jax: {
+        inlineMath: [ ['$','$'], ["\\(","\\)"]  ],
+        processEscapes: true,
+        skipTags: ['script', 'noscript', 'style', 'textarea', 'pre', 'code']
+    }
+});
+
+MathJax.Hub.Queue(function() {
+    var all = MathJax.Hub.getAllJax(), i;
+    for(i=0; i < all.length; i += 1) {
+        all[i].SourceElement().parentNode.className += ' has-jax';                 
+    }       
+});
+</script>
+
+<script type="text/javascript" src="http://cdn.mathjax.org/mathjax/latest/MathJax.js?config=TeX-AMS-MML_HTMLorMML">
+</script>
+
+
+  </div>
+</body>
+</html>
