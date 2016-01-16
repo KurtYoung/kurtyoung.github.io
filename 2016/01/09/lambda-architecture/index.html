@@ -16,7 +16,7 @@ CAP理论CAP理论决定了一个分布式系统注定不能同时获得一致�
 CAP理论CAP理论决定了一个分布式系统注定不能同时获得一致性(consistency)， 可用性(availability)和分区容忍性(partition-tolerance)。一般对于分布式系统来说，分区容忍性是一定不能牺牲的（谁还没个网络出错，断电的时候），那么">
 <meta property="og:image" content="http://kurtyoung.github.io/images/precomputation.png">
 <meta property="og:image" content="http://kurtyoung.github.io/images/batch_realtime_example.png">
-<meta property="og:updated_time" content="2016-01-10T07:24:40.000Z">
+<meta property="og:updated_time" content="2016-01-16T12:35:03.000Z">
 <meta name="twitter:card" content="summary">
 <meta name="twitter:title" content="Lambda Architecture - 如何突破CAP理论的限制">
 <meta name="twitter:description" content="原文链接：http://nathanmarz.com/blog/how-to-beat-the-cap-theorem.html
@@ -234,7 +234,7 @@ CAP理论CAP理论决定了一个分布式系统注定不能同时获得一致�
 <li>每次重新计算全量数据能有效防止引入CAP带来的复杂度</li>
 <li>系统可以使用一些增量算法来将查询的延迟降低到可接受的程度</li>
 </ol>
-<h1 id="u6279_u91CF_u8BA1_u7B97"><a href="#u6279_u91CF_u8BA1_u7B97" class="headerlink" title="批量计算"></a>批量计算</h1><p>毕竟每个query都对计算一遍所有数据不现实，那么一种可行的优化手段是我们预先把query的结果算好，每当一个新的数据来的时候，我们就遍历一遍所有的数据，把可能的query的结果计算好并存储在另外一个系统中供用户查询。可能每次全量计算一遍的代价和延迟都很大，目前我们可以先忽略这一点，等之后再慢慢收紧这些要求。这样的系统会长成这个样子：<br><img src="/images/precomputation.png" alt=""></p>
+<h1 id="u6279_u5904_u7406"><a href="#u6279_u5904_u7406" class="headerlink" title="批处理"></a>批处理</h1><p>毕竟每个query都对计算一遍所有数据不现实，那么一种可行的优化手段是我们预先把query的结果算好，每当一个新的数据来的时候，我们就遍历一遍所有的数据，把可能的query的结果计算好并存储在另外一个系统中供用户查询。可能每次全量计算一遍的代价和延迟都很大，目前我们可以先忽略这一点，等之后再慢慢收紧这些要求。这样的系统会长成这个样子：<br><img src="/images/precomputation.png" alt=""></p>
 <p>这样的系统需要具有以下两个特点：</p>
 <ol>
 <li>可以轻松的存储海量且一直增长的数据</li>
@@ -245,10 +245,10 @@ CAP理论CAP理论决定了一个分布式系统注定不能同时获得一致�
 <li>query计算错了：重新部署一个正确的版本，然后把所有的计算用正确的版本再做一遍。</li>
 <li>写进了错误的数据：把新的数据写进去，再重新做一次全量的计算。</li>
 </ul>
-<h1 id="u5B9E_u65F6_u8BA1_u7B97"><a href="#u5B9E_u65F6_u8BA1_u7B97" class="headerlink" title="实时计算"></a>实时计算</h1><p>批量计算已经解决了大部分问题，那么现在剩下的就是批量计算没有覆盖到的范围：最近的一些数据。计算最近几小时的数据比计算所有数据显然已经简单的多，另外需要做的就是在查询的时候把批量和实时的结果进行合并。典型的结构如下：<br><img src="/images/batch_realtime_example.png" alt=""></p>
-<h1 id="u6279_u91CF+_u5B9E_u65F6"><a href="#u6279_u91CF+_u5B9E_u65F6" class="headerlink" title="批量+实时"></a>批量+实时</h1><p>看起来上图好像又把我们拉回到了起点，一个看起来挺复杂的系统，又要开始在CAP的三个选择之间纠结。但有一个最大的区别是，实时计算层虽然还是需要面对前面列举的问题，但这样做能很好的将复杂度全部隔离在里面。就算实时计算出了一些差错，批量计算总能带回来正确的结果。另外这样的系统设计还能带来这些额外的好处：</p>
+<h1 id="u5B9E_u65F6_u8BA1_u7B97"><a href="#u5B9E_u65F6_u8BA1_u7B97" class="headerlink" title="实时计算"></a>实时计算</h1><p>批处理已经解决了大部分问题，那么现在剩下的就是批处理没有覆盖到的范围：最近的一些数据。计算最近几小时的数据比计算所有数据显然已经简单的多，另外需要做的就是在查询的时候把批处理和实时的结果进行合并。典型的结构如下：<br><img src="/images/batch_realtime_example.png" alt=""></p>
+<h1 id="u6279_u5904_u7406+_u5B9E_u65F6"><a href="#u6279_u5904_u7406+_u5B9E_u65F6" class="headerlink" title="批处理+实时"></a>批处理+实时</h1><p>看起来上图好像又把我们拉回到了起点，一个看起来挺复杂的系统，又要开始在CAP的三个选择之间纠结。但有一个最大的区别是，实时计算层虽然还是需要面对前面列举的问题，但这样做能很好的将复杂度全部隔离在里面。就算实时计算出了一些差错，批处理总能带回来正确的结果。另外这样的系统设计还能带来这些额外的好处：</p>
 <ol>
-<li>算法选择的灵活性：有些算法比较复杂，比如精确的distinct count。那么我们可以选择在批量层做一些精确的计算，但是在实时层可以实现成速度较快但是有一定误差的算法。</li>
+<li>算法选择的灵活性：有些算法比较复杂，比如精确的distinct count。那么我们可以选择在批处理层做一些精确的计算，但是在实时层可以实现成速度较快但是有一定误差的算法。</li>
 <li>schema变更</li>
 <li>方便做ad-hoc分析</li>
 <li>数据自审计</li>
@@ -256,7 +256,7 @@ CAP理论CAP理论决定了一个分布式系统注定不能同时获得一致�
 <h1 id="u603B_u7ED3"><a href="#u603B_u7ED3" class="headerlink" title="总结"></a>总结</h1><p>很多人都想设计出扩展性更好的大数据系统，现在一些大数据和NoSql系统已经朝着越来越复杂的方向前进了。但很有可能是因为我们错误的对待了这些系统，我们把它当成关系型数据库一样去管理：把数据和视图混在一起，引入各种复杂的增量计算算法。这里作者提出了一种设计思路，把数据当成一种不变的一直自增长的东西，并且在核心层对全量数据进行周而复始的重新计算，使用实时计算来弥补系统实时性不足的问题。这样的系统设计对CAP理论带来的限制和人为可能的错误都有较好的应对方案，同时还能比较好的控制住系统的复杂度。这只是起点，作者还列举了一些他觉得未来可行的改进方向：</p>
 <ol>
 <li>扩展数据模型：不是所有的应用都能将数据弄成简单的kv模型</li>
-<li>更好的批量计算模型：hadoop很好，但肯定不是最好，我们还需要一直探索更好的批量计算模型（比如说spark）</li>
+<li>更好的批处理模型：hadoop很好，但肯定不是最好，我们还需要一直探索更好的批处理模型（比如说spark）</li>
 <li>更好的NoSql数据库：不同的数据模型需要更多更好的NoSql数据库来服务</li>
 <li>更高层次的抽象</li>
 </ol>
@@ -268,6 +268,15 @@ CAP理论CAP理论决定了一个分布式系统注定不能同时获得一致�
   
     
 <nav id="article-nav">
+  
+    <a href="/2016/01/16/kappa-architecture/" id="article-nav-newer" class="article-nav-link-wrap">
+      <strong class="article-nav-caption"><</strong>
+      <div class="article-nav-title">
+        
+          Kappa Architecture - 《Questioning the Lambda Architecture》
+        
+      </div>
+    </a>
   
   
     <a href="/2016/01/08/hello-world/" id="article-nav-older" class="article-nav-link-wrap">

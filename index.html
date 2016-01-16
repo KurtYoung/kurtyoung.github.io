@@ -169,6 +169,68 @@
 
       <div class="body-wrap">
   
+    <article id="post-kappa-architecture" class="article article-type-post" itemscope itemprop="blogPost">
+  
+    <div class="article-meta">
+      <a href="/2016/01/16/kappa-architecture/" class="article-date">
+  	<time datetime="2016-01-16T11:24:15.000Z" itemprop="datePublished">2016-01-16</time>
+</a>
+    </div>
+  
+  <div class="article-inner">
+    
+      <input type="hidden" class="isFancy" />
+    
+    
+      <header class="article-header">
+        
+  
+    <h1 itemprop="name">
+      <a class="article-title" href="/2016/01/16/kappa-architecture/">Kappa Architecture - 《Questioning the Lambda Architecture》</a>
+    </h1>
+  
+
+      </header>
+      
+    
+    <div class="article-entry" itemprop="articleBody">
+      
+        <p>原文链接：<a href="http://radar.oreilly.com/2014/07/questioning-the-lambda-architecture.html">http://radar.oreilly.com/2014/07/questioning-the-lambda-architecture.html</a></p>
+<h1 id="u524D_u8A00"><a href="#u524D_u8A00" class="headerlink" title="前言"></a>前言</h1><p>在上一篇介绍<a href="/2016/01/09/lambda-architecture/">Lambda Architecture</a>的文章中，作者提出了一种号称能“击败”CAP理论的系统架构，这个架构现在整变得越来越流行，甚至已经有专门的<a href="http://lambda-architecture.net/">网站</a>和<a href="http://www.manning.com/marz/">书</a>。本文是当时还在Linkedin的大神Jay Kreps写的他对这个架构的一些观点，并且提出了一种他认为比较靠谱的可选方案。</p>
+<h1 id="Lambda_Architecture_u56DE_u987E"><a href="#Lambda_Architecture_u56DE_u987E" class="headerlink" title="Lambda Architecture回顾"></a>Lambda Architecture回顾</h1><p>这种系统看起来一般长这个样子：<br><img src="/images/lambda.png" alt=""><br>系统从一个流中读取被我们定义为不可变的数据，分别灌入实时和批处理系统，然后各自输出自己的结果。在查询端，对实时和批处理的结果进行合并。这种系统还有许多变种，比如选择各种各样的分布式队列，流计算引擎。    或者同时使用多个存储引擎，一种适合批量存储，一种适合流式存储。这种系统主要面向的场景主要是逻辑比较复杂同时又希望延迟比较低的异步处理程序，比如搜索引擎，推荐引擎等。<br>
+      
+    </div>
+    
+    <div class="article-info article-info-index">
+      
+      
+	<div class="article-tag tagcloud">
+		<ul class="article-tag-list"><li class="article-tag-list-item"><a class="article-tag-list-link" href="/tags/architecture/">architecture</a></li><li class="article-tag-list-item"><a class="article-tag-list-link" href="/tags/笔记/">笔记</a></li></ul>
+	</div>
+
+      
+
+      
+        <p class="article-more-link">
+          <a  href="/2016/01/16/kappa-architecture/#more">more >></a>
+        </p>
+      
+      <div class="clearfix"></div>
+    </div>
+    
+  </div>
+  
+</article>
+
+
+
+
+
+
+
+
+
+  
     <article id="post-lambda-architecture" class="article article-type-post" itemscope itemprop="blogPost">
   
     <div class="article-meta">

@@ -1,0 +1,365 @@
+<!DOCTYPE html>
+<html>
+<head>
+  <meta charset="utf-8">
+  
+  <meta http-equiv="X-UA-Compatible" content="IE=edge" >
+  <title>Kappa Architecture - 《Questioning the Lambda Architecture》 | Kurt&#39;s blog</title>
+  <meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1">
+  <meta name="description" content="原文链接：http://radar.oreilly.com/2014/07/questioning-the-lambda-architecture.html
+前言在上一篇介绍Lambda Architecture的文章中，作者提出了一种号称能“击败”CAP理论的系统架构，这个架构现在整变得越来越流行，甚至已经有专门的网站和书。本文是当时还在Linkedin的大神Jay Kreps写的他对这个架构的">
+<meta property="og:type" content="article">
+<meta property="og:title" content="Kappa Architecture - 《Questioning the Lambda Architecture》">
+<meta property="og:url" content="http://kurtyoung.github.io/2016/01/16/kappa-architecture/index.html">
+<meta property="og:site_name" content="Kurt's blog">
+<meta property="og:description" content="原文链接：http://radar.oreilly.com/2014/07/questioning-the-lambda-architecture.html
+前言在上一篇介绍Lambda Architecture的文章中，作者提出了一种号称能“击败”CAP理论的系统架构，这个架构现在整变得越来越流行，甚至已经有专门的网站和书。本文是当时还在Linkedin的大神Jay Kreps写的他对这个架构的">
+<meta property="og:image" content="http://kurtyoung.github.io/images/lambda.png">
+<meta property="og:image" content="http://kurtyoung.github.io/images/kappa.png">
+<meta property="og:updated_time" content="2016-01-16T14:27:38.000Z">
+<meta name="twitter:card" content="summary">
+<meta name="twitter:title" content="Kappa Architecture - 《Questioning the Lambda Architecture》">
+<meta name="twitter:description" content="原文链接：http://radar.oreilly.com/2014/07/questioning-the-lambda-architecture.html
+前言在上一篇介绍Lambda Architecture的文章中，作者提出了一种号称能“击败”CAP理论的系统架构，这个架构现在整变得越来越流行，甚至已经有专门的网站和书。本文是当时还在Linkedin的大神Jay Kreps写的他对这个架构的">
+  
+    <link rel="alternative" href="/atom.xml" title="Kurt&#39;s blog" type="application/atom+xml">
+  
+  
+    <link rel="icon" href="/favicon.png">
+  
+  <link rel="stylesheet" href="/css/style.css" type="text/css">
+</head>
+
+<body>
+  <div id="container">
+    <div class="left-col">
+    <div class="overlay"></div>
+<div class="intrude-less">
+	<header id="header" class="inner">
+		<a href="/" class="profilepic">
+			
+			<img lazy-src="/images/kurt.jpg" class="js-avatar">
+			
+		</a>
+
+		<hgroup>
+		  <h1 class="header-author"><a href="/">Kurt Young</a></h1>
+		</hgroup>
+
+		
+		<p class="header-subtitle">码农，Data Nerd</p>
+		
+
+		
+			<div class="switch-btn">
+				<div class="icon">
+					<div class="icon-ctn">
+						<div class="icon-wrap icon-house" data-idx="0">
+							<div class="birdhouse"></div>
+							<div class="birdhouse_holes"></div>
+						</div>
+						<div class="icon-wrap icon-ribbon hide" data-idx="1">
+							<div class="ribbon"></div>
+						</div>
+						
+						
+						<div class="icon-wrap icon-me hide" data-idx="3">
+							<div class="user"></div>
+							<div class="shoulder"></div>
+						</div>
+						
+					</div>
+					
+				</div>
+				<div class="tips-box hide">
+					<div class="tips-arrow"></div>
+					<ul class="tips-inner">
+						<li>菜单</li>
+						<li>标签</li>
+						
+						
+						<li>关于我</li>
+						
+					</ul>
+				</div>
+			</div>
+		
+
+		<div class="switch-area">
+			<div class="switch-wrap">
+				<section class="switch-part switch-part1">
+					<nav class="header-menu">
+						<ul>
+						
+							<li><a href="/">主页</a></li>
+				        
+							<li><a href="/archives">所有文章</a></li>
+				        
+						</ul>
+					</nav>
+					<nav class="header-nav">
+						<div class="social">
+							
+								<a class="github" target="_blank" href="https://github.com/KurtYoung" title="github">github</a>
+					        
+								<a class="weibo" target="_blank" href="http://weibo.com/yangkete" title="weibo">weibo</a>
+					        
+						</div>
+					</nav>
+				</section>
+				
+				
+				<section class="switch-part switch-part2">
+					<div class="widget tagcloud" id="js-tagcloud">
+						<a href="/tags/architecture/" style="font-size: 10px;">architecture</a> <a href="/tags/笔记/" style="font-size: 10px;">笔记</a>
+					</div>
+				</section>
+				
+				
+				
+
+				
+				
+				<section class="switch-part switch-part3">
+				
+					<div id="js-aboutme">一枚码农</div>
+				</section>
+				
+			</div>
+		</div>
+	</header>				
+</div>
+
+    </div>
+    <div class="mid-col">
+      <nav id="mobile-nav">
+  	<div class="overlay">
+  		<div class="slider-trigger"></div>
+  		<h1 class="header-author js-mobile-header hide">Kurt Young</h1>
+  	</div>
+	<div class="intrude-less">
+		<header id="header" class="inner">
+			<div class="profilepic">
+			
+				<img lazy-src="/images/kurt.jpg" class="js-avatar">
+			
+			</div>
+			<hgroup>
+			  <h1 class="header-author">Kurt Young</h1>
+			</hgroup>
+			
+			<p class="header-subtitle">码农，Data Nerd</p>
+			
+			<nav class="header-menu">
+				<ul>
+				
+					<li><a href="/">主页</a></li>
+		        
+					<li><a href="/archives">所有文章</a></li>
+		        
+		        <div class="clearfix"></div>
+				</ul>
+			</nav>
+			<nav class="header-nav">
+				<div class="social">
+					
+						<a class="github" target="_blank" href="https://github.com/KurtYoung" title="github">github</a>
+			        
+						<a class="weibo" target="_blank" href="http://weibo.com/yangkete" title="weibo">weibo</a>
+			        
+				</div>
+			</nav>
+		</header>				
+	</div>
+</nav>
+
+      <div class="body-wrap"><article id="post-kappa-architecture" class="article article-type-post" itemscope itemprop="blogPost">
+  
+    <div class="article-meta">
+      <a href="/2016/01/16/kappa-architecture/" class="article-date">
+  	<time datetime="2016-01-16T11:24:15.000Z" itemprop="datePublished">2016-01-16</time>
+</a>
+    </div>
+  
+  <div class="article-inner">
+    
+      <input type="hidden" class="isFancy" />
+    
+    
+      <header class="article-header">
+        
+  
+    <h1 class="article-title" itemprop="name">
+      Kappa Architecture - 《Questioning the Lambda Architecture》
+    </h1>
+  
+
+      </header>
+      
+      <div class="article-info article-info-post">
+        
+	<div class="article-tag tagcloud">
+		<ul class="article-tag-list"><li class="article-tag-list-item"><a class="article-tag-list-link" href="/tags/architecture/">architecture</a></li><li class="article-tag-list-item"><a class="article-tag-list-link" href="/tags/笔记/">笔记</a></li></ul>
+	</div>
+
+        
+
+        <div class="clearfix"></div>
+      </div>
+      
+    
+    <div class="article-entry" itemprop="articleBody">
+      
+        <p>原文链接：<a href="http://radar.oreilly.com/2014/07/questioning-the-lambda-architecture.html" target="_blank" rel="external">http://radar.oreilly.com/2014/07/questioning-the-lambda-architecture.html</a></p>
+<h1 id="u524D_u8A00"><a href="#u524D_u8A00" class="headerlink" title="前言"></a>前言</h1><p>在上一篇介绍<a href="/2016/01/09/lambda-architecture/">Lambda Architecture</a>的文章中，作者提出了一种号称能“击败”CAP理论的系统架构，这个架构现在整变得越来越流行，甚至已经有专门的<a href="http://lambda-architecture.net/" target="_blank" rel="external">网站</a>和<a href="http://www.manning.com/marz/" target="_blank" rel="external">书</a>。本文是当时还在Linkedin的大神Jay Kreps写的他对这个架构的一些观点，并且提出了一种他认为比较靠谱的可选方案。</p>
+<h1 id="Lambda_Architecture_u56DE_u987E"><a href="#Lambda_Architecture_u56DE_u987E" class="headerlink" title="Lambda Architecture回顾"></a>Lambda Architecture回顾</h1><p>这种系统看起来一般长这个样子：<br><img src="/images/lambda.png" alt=""><br>系统从一个流中读取被我们定义为不可变的数据，分别灌入实时和批处理系统，然后各自输出自己的结果。在查询端，对实时和批处理的结果进行合并。这种系统还有许多变种，比如选择各种各样的分布式队列，流计算引擎。    或者同时使用多个存储引擎，一种适合批量存储，一种适合流式存储。这种系统主要面向的场景主要是逻辑比较复杂同时又希望延迟比较低的异步处理程序，比如搜索引擎，推荐引擎等。<br><a id="more"></a></p>
+<h1 id="Lambda_Architecture_u7684_u4F18_u70B9_uFF1A"><a href="#Lambda_Architecture_u7684_u4F18_u70B9_uFF1A" class="headerlink" title="Lambda Architecture的优点："></a>Lambda Architecture的优点：</h1><p>将数据定义为不可变是Lambda Architecture一个很好的起点，同时把复杂的数据处理分成多个不同的阶段，在他们之间使用数据作为桥梁这种做法也有很多好处。比较明显的就是系统解耦，你可以独立的对每一步进行设计和实现。另外Lambda Architecture强调了一个别人经常忽视的问题，那就是全量数据的重新处理。数据全量重新处理能解决很多问题，比如代码逻辑升级，老代码有bug等。许多人设计流式处理系统经常会忽略这个功能的重要性。<br>另外一些Lambda Architecture提出的观点可能就不是非常有道理了。比如认为实时处理系统一般比较弱，比不上批处理等。这些现象可能只是现在的实时处理系统还没有MapReduce这种发展了好多年的系统成熟罢了。另外一点是号称自己“击败”了CAP理论，这看起来也只是一个文字游戏，CAP理论依然成立，作者只是提出了一个异步处理系统的架构同时做了一些有效性和延迟的取舍。</p>
+<h1 id="Lambda_Architecture_u7684_u7F3A_u70B9_uFF1A"><a href="#Lambda_Architecture_u7684_u7F3A_u70B9_uFF1A" class="headerlink" title="Lambda Architecture的缺点："></a>Lambda Architecture的缺点：</h1><p>Lambda Architecture的一个明显的问题是，我们需要维护两套分别跑在批处理和实时计算系统上面的代码，而且这两套代码得产出一模一样的结果。一般批处理和实时计算系统都会有各自适合自己的接口API，我们写出的代码不可避免的会往不同的方向发展。一个解决办法是，提供一个更高的抽象层，将这两种计算框架隐藏在抽象之后，比如<a href="http://github.com/twitter/summingbird" target="_blank" rel="external">Summingbird</a>。虽然这样做能缓解这个问题，但不能彻底解决，设计和维护这样的抽象本身就是个很恶心的事情了。就算我们想出了一种办法来决绝两套代码的问题，我们始终还得面对两个在运行的系统，运维成本还是比较高。同时Jay大神还说了他们在Linkedin还真就做了这么件事（估计就是上面提到的Summingbird），这种系统能用，但确实不怎么爽。虽然做了高层次抽象的本意是对用户屏蔽实现细节，但用户想真正用好这样的系统，却需要知道更多的批处理和实时计算的细节，你总得知道API是如何转换到批处理和实时计算的，不然系统出故障的时候就只能抓瞎了。<br>所以，我们其实不妨在选择系统的时候简单点，你能容忍高延迟，需要大吞吐，你就选择像Hadoop这样的批处理系统。如果你需要低延时，那就选择实时计算系统。Lambda Architecture如此流行的一个原因是，大家可能越来越需要一种能应对流程复杂，低延迟，大吞吐的系统。Lambda Architecture做法只是简单的将两种处理能力和特点各不相同的系统结合在了一块，这并不一定就能代表未来大数据处理系统的发展方向，而且我们目前也可以有一种替代的方案。</p>
+<h1 id="u66FF_u4EE3_u65B9_u6848_uFF1AKappa_Architecture"><a href="#u66FF_u4EE3_u65B9_u6848_uFF1AKappa_Architecture" class="headerlink" title="替代方案：Kappa Architecture"></a>替代方案：Kappa Architecture</h1><p>对于设计这类系统的人来讲，一个要面对的问题是：为什么我们不能改进流计算系统让它能处理这些问题？为什么不能让流计算系统来解决数据全量处理的问题？流计算天然的分布式特性注定了其扩展性比较好，我们能不能加大并发量来处理海量的历史数据？Jay认为这其实就是一个比较靠谱的替代方案。<br>可能大家看到这个的时候，都会下意识的觉得让流计算系统来处理海量数据会有点不合适，要么吞吐量会上不去，又或者是系统的规模上不去。流计算给人的印象大部分还是对一些流式的，临时的数据进行计算，将结果保存后就把原始数据给扔了。但流计算的本质其实是数据流的DAG，这和各种批处理，海量计算系统并没有什么区别。像MapReduce这样流行的批处理系统也仍然有个改进的更像DAG处理的版本:<a href="http://hortonworks.com/hadoop/tez/" target="_blank" rel="external">Tez</a>。流计算只是对这种数据模型进行了抽象和概括，同时引入了在中间结果集上进行checkpoint，并持续将结果输出给用户的概念。<br>那么我们怎么对全量数据进行重新计算？答案也很简单：</p>
+<ol>
+<li>用Kafka或者类似的分布式队列系统保存数据，你需要几天的数据量就保存几天。</li>
+<li>当需要全量重新计算时，重新起一个流计算实例，从头开始读取数据进行处理，并输出到一个新的结果存储中。</li>
+<li>当新的实例做完后，停止老的流计算实例，并把老的一些结果删除。</li>
+</ol>
+<p>这种架构看起来长这个样子：<br><img src="/images/kappa.png" alt=""><br>和Lambda Architecture不同的是，在这种架构下，我们只有在必要的时候才会对数据进行重复计算，并且系统的结构，使用的代码，读取的数据都和老版本一样。而且在必要的时候，我们还可以控制新实例的并发数，让全量的计算尽快的完成。</p>
+<p>这就是<strong>Kappa Architecture</strong>，看起来比Lambda架构还要简单一些。</p>
+<p>上面的架构图里，新老实例各使用了自己的结果存储。虽然我们可以对这个进行优化，让它们共享一个结果存储，但同时保留多个结果也是有它的好处的（毕竟它们只是短暂的同时存在）。存两份结果的好处是，我们可以随时的进行回滚。更进一步，假如我们产出的是一些算法模型之类的数据，用户还可以同时对新老两份数据进行效果验证，做一些A/B test或者使用bandit算法来最大限度的使用这些数据。</p>
+<h1 id="u4E24_u4E2A_u67B6_u6784_u7684_u5BF9_u6BD4"><a href="#u4E24_u4E2A_u67B6_u6784_u7684_u5BF9_u6BD4" class="headerlink" title="两个架构的对比"></a>两个架构的对比</h1><p>Kappa架构吸收了不少Lambda架构提出的观点和假设，Jay表示Kappa Architecture在Linkedin已经进行了大规模的使用，并且效果还不错。两个架构有各自的优点，也有各自的缺点。Lamda架构需要批处理和全量计算一直跑着，而Kappa架构只在需要的时候才进行全量计算。但Kappa架构需要更多的结果存储，不过如果你有很多这样的系统，并且跑在一个共享集群上，这些临时的额外开销影响也不是很大。也许真正的对比并不是这两个架构谁的效率更高，而是用户能不能轻松的在这种架构上进行开发，测试和运维，并且只需要面对一个框架。</p>
+
+      
+    </div>
+    
+  </div>
+  
+    
+<nav id="article-nav">
+  
+  
+    <a href="/2016/01/09/lambda-architecture/" id="article-nav-older" class="article-nav-link-wrap">
+      <div class="article-nav-title">Lambda Architecture - 如何突破CAP理论的限制</div>
+      <strong class="article-nav-caption">></strong>
+    </a>
+  
+</nav>
+
+  
+</article>
+
+
+<div class="share_jia">
+	<!-- JiaThis Button BEGIN -->
+	<div class="jiathis_style">
+		<span class="jiathis_txt">分享到: &nbsp; </span>
+		<a class="jiathis_button_facebook"></a> 
+    <a class="jiathis_button_twitter"></a>
+    <a class="jiathis_button_plus"></a> 
+    <a class="jiathis_button_tsina"></a>
+		<a class="jiathis_button_cqq"></a>
+		<a class="jiathis_button_douban"></a>
+		<a class="jiathis_button_weixin"></a>
+		<a class="jiathis_button_tumblr"></a>
+    <a href="http://www.jiathis.com/share" class="jiathis jiathis_txt jtico jtico_jiathis" target="_blank"></a>
+	</div>
+	<script type="text/javascript" src="http://v3.jiathis.com/code/jia.js?uid=1405949716054953" charset="utf-8"></script>
+	<!-- JiaThis Button END -->
+</div>
+
+
+
+
+
+
+<div class="duoshuo">
+	<!-- 多说评论框 start -->
+	<div class="ds-thread" data-thread-key="kappa-architecture" data-title="Kappa Architecture - 《Questioning the Lambda Architecture》" data-url="http://kurtyoung.github.io/2016/01/16/kappa-architecture/"></div>
+	<!-- 多说评论框 end -->
+	<!-- 多说公共JS代码 start (一个网页只需插入一次) -->
+	<script type="text/javascript">
+	var duoshuoQuery = {short_name:"kurtyoung"};
+	(function() {
+		var ds = document.createElement('script');
+		ds.type = 'text/javascript';ds.async = true;
+		ds.src = (document.location.protocol == 'https:' ? 'https:' : 'http:') + '//static.duoshuo.com/embed.js';
+		ds.charset = 'UTF-8';
+		(document.getElementsByTagName('head')[0] 
+		 || document.getElementsByTagName('body')[0]).appendChild(ds);
+	})();
+	</script>
+	<!-- 多说公共JS代码 end -->
+</div>
+
+
+
+
+</div>
+      <footer id="footer">
+  <div class="outer">
+    <div id="footer-info">
+    	<div class="footer-left">
+    		&copy; 2016 Kurt Young
+		<span id="busuanzi_container_site_pv">
+		    本站总访问量<span id="busuanzi_value_site_pv"></span>次
+		</span>
+		<span id="busuanzi_container_site_uv">
+		  本站访客数<span id="busuanzi_value_site_uv"></span>人次
+		</span>
+    	</div>
+      	<div class="footer-right">
+      		<a href="http://hexo.io/" target="_blank">Hexo</a>  Theme <a href="https://github.com/litten/hexo-theme-yilia" target="_blank">Yilia</a> by Litten
+      	</div>
+    </div>
+  </div>
+</footer>
+    </div>
+    
+  <link rel="stylesheet" href="/fancybox/jquery.fancybox.css" type="text/css">
+
+
+<script>
+	var yiliaConfig = {
+		fancybox: true,
+		mathjax: true,
+		animate: true,
+		isHome: false,
+		isPost: true,
+		isArchive: false,
+		isTag: false,
+		isCategory: false,
+		open_in_new: false
+	}
+</script>
+<script src="http://7.url.cn/edu/jslib/comb/require-2.1.6,jquery-1.9.1.min.js" type="text/javascript"></script>
+<script src="/js/main.js" type="text/javascript"></script>
+
+
+
+
+
+
+<script type="text/x-mathjax-config">
+MathJax.Hub.Config({
+    tex2jax: {
+        inlineMath: [ ['$','$'], ["\\(","\\)"]  ],
+        processEscapes: true,
+        skipTags: ['script', 'noscript', 'style', 'textarea', 'pre', 'code']
+    }
+});
+
+MathJax.Hub.Queue(function() {
+    var all = MathJax.Hub.getAllJax(), i;
+    for(i=0; i < all.length; i += 1) {
+        all[i].SourceElement().parentNode.className += ' has-jax';                 
+    }       
+});
+</script>
+
+<script type="text/javascript" src="http://cdn.mathjax.org/mathjax/latest/MathJax.js?config=TeX-AMS-MML_HTMLorMML">
+</script>
+
+
+
+<script async src="https://dn-lbstatics.qbox.me/busuanzi/2.3/busuanzi.pure.mini.js"></script>
+
+  </div>
+</body>
+</html>
