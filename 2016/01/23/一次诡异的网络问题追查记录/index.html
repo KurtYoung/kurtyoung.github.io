@@ -1,0 +1,380 @@
+<!DOCTYPE html>
+<html>
+<head>
+  <meta charset="utf-8">
+  
+  <meta http-equiv="X-UA-Compatible" content="IE=edge" >
+  <title>一次诡异的网络问题追查记录 | Kurt&#39;s Blog</title>
+  <meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1">
+  <meta name="description" content="关键词：tcp，3秒，arp，丢包，重传
+起因事情的起因是我们给线上的一个服务新加了30台服务器，然后就有用户反馈说我们的查询性能开始变得不稳定，一些平时很快的请求经常要卡好久才能返回。照理说加机器服务应该变得更快才是，怎么会变得更不稳定呢，这让我们一开始也不是很愿意相信这个事实。直到我们自己也试着查了几次，确实有用户反馈的不稳定的现象，有时候query能在几百毫秒就返回结果，有时候却需要10几2">
+<meta property="og:type" content="article">
+<meta property="og:title" content="一次诡异的网络问题追查记录">
+<meta property="og:url" content="http://kurtyoung.github.io/2016/01/23/一次诡异的网络问题追查记录/index.html">
+<meta property="og:site_name" content="Kurt's Blog">
+<meta property="og:description" content="关键词：tcp，3秒，arp，丢包，重传
+起因事情的起因是我们给线上的一个服务新加了30台服务器，然后就有用户反馈说我们的查询性能开始变得不稳定，一些平时很快的请求经常要卡好久才能返回。照理说加机器服务应该变得更快才是，怎么会变得更不稳定呢，这让我们一开始也不是很愿意相信这个事实。直到我们自己也试着查了几次，确实有用户反馈的不稳定的现象，有时候query能在几百毫秒就返回结果，有时候却需要10几2">
+<meta property="og:image" content="http://kurtyoung.github.io/images/tcp_retran.png">
+<meta property="og:image" content="http://kurtyoung.github.io/images/tcpdump_retran.png">
+<meta property="og:image" content="http://kurtyoung.github.io/images/tcpdump_syn_outoforder.png">
+<meta property="og:image" content="http://kurtyoung.github.io/images/arp.png">
+<meta property="og:updated_time" content="2016-01-24T05:31:43.000Z">
+<meta name="twitter:card" content="summary">
+<meta name="twitter:title" content="一次诡异的网络问题追查记录">
+<meta name="twitter:description" content="关键词：tcp，3秒，arp，丢包，重传
+起因事情的起因是我们给线上的一个服务新加了30台服务器，然后就有用户反馈说我们的查询性能开始变得不稳定，一些平时很快的请求经常要卡好久才能返回。照理说加机器服务应该变得更快才是，怎么会变得更不稳定呢，这让我们一开始也不是很愿意相信这个事实。直到我们自己也试着查了几次，确实有用户反馈的不稳定的现象，有时候query能在几百毫秒就返回结果，有时候却需要10几2">
+  
+    <link rel="alternative" href="/atom.xml" title="Kurt&#39;s Blog" type="application/atom+xml">
+  
+  
+    <link rel="icon" href="/favicon.png">
+  
+  <link rel="stylesheet" href="/css/style.css" type="text/css">
+</head>
+
+<body>
+  <div id="container">
+    <div class="left-col">
+    <div class="overlay"></div>
+<div class="intrude-less">
+	<header id="header" class="inner">
+		<a href="/" class="profilepic">
+			
+			<img lazy-src="/images/kurt.jpg" class="js-avatar">
+			
+		</a>
+
+		<hgroup>
+		  <h1 class="header-author"><a href="/">Kurt Young</a></h1>
+		</hgroup>
+
+		
+		<p class="header-subtitle">码农，Data Nerd</p>
+		
+
+		
+			<div class="switch-btn">
+				<div class="icon">
+					<div class="icon-ctn">
+						<div class="icon-wrap icon-house" data-idx="0">
+							<div class="birdhouse"></div>
+							<div class="birdhouse_holes"></div>
+						</div>
+						<div class="icon-wrap icon-ribbon hide" data-idx="1">
+							<div class="ribbon"></div>
+						</div>
+						
+						
+						<div class="icon-wrap icon-me hide" data-idx="3">
+							<div class="user"></div>
+							<div class="shoulder"></div>
+						</div>
+						
+					</div>
+					
+				</div>
+				<div class="tips-box hide">
+					<div class="tips-arrow"></div>
+					<ul class="tips-inner">
+						<li>菜单</li>
+						<li>标签</li>
+						
+						
+						<li>关于我</li>
+						
+					</ul>
+				</div>
+			</div>
+		
+
+		<div class="switch-area">
+			<div class="switch-wrap">
+				<section class="switch-part switch-part1">
+					<nav class="header-menu">
+						<ul>
+						
+							<li><a href="/">主页</a></li>
+				        
+							<li><a href="/archives">所有文章</a></li>
+				        
+						</ul>
+					</nav>
+					<nav class="header-nav">
+						<div class="social">
+							
+								<a class="github" target="_blank" href="https://github.com/KurtYoung" title="github">github</a>
+					        
+								<a class="weibo" target="_blank" href="http://weibo.com/yangkete" title="weibo">weibo</a>
+					        
+						</div>
+					</nav>
+				</section>
+				
+				
+				<section class="switch-part switch-part2">
+					<div class="widget tagcloud" id="js-tagcloud">
+						<a href="/tags/architecture/" style="font-size: 20px;">architecture</a> <a href="/tags/linux/" style="font-size: 10px;">linux</a> <a href="/tags/tcp/" style="font-size: 10px;">tcp</a> <a href="/tags/流计算/" style="font-size: 10px;">流计算</a> <a href="/tags/笔记/" style="font-size: 20px;">笔记</a>
+					</div>
+				</section>
+				
+				
+				
+
+				
+				
+				<section class="switch-part switch-part3">
+				
+					<div id="js-aboutme">一枚码农</div>
+				</section>
+				
+			</div>
+		</div>
+	</header>				
+</div>
+
+    </div>
+    <div class="mid-col">
+      <nav id="mobile-nav">
+  	<div class="overlay">
+  		<div class="slider-trigger"></div>
+  		<h1 class="header-author js-mobile-header hide">Kurt Young</h1>
+  	</div>
+	<div class="intrude-less">
+		<header id="header" class="inner">
+			<div class="profilepic">
+			
+				<img lazy-src="/images/kurt.jpg" class="js-avatar">
+			
+			</div>
+			<hgroup>
+			  <h1 class="header-author">Kurt Young</h1>
+			</hgroup>
+			
+			<p class="header-subtitle">码农，Data Nerd</p>
+			
+			<nav class="header-menu">
+				<ul>
+				
+					<li><a href="/">主页</a></li>
+		        
+					<li><a href="/archives">所有文章</a></li>
+		        
+		        <div class="clearfix"></div>
+				</ul>
+			</nav>
+			<nav class="header-nav">
+				<div class="social">
+					
+						<a class="github" target="_blank" href="https://github.com/KurtYoung" title="github">github</a>
+			        
+						<a class="weibo" target="_blank" href="http://weibo.com/yangkete" title="weibo">weibo</a>
+			        
+				</div>
+			</nav>
+		</header>				
+	</div>
+</nav>
+
+      <div class="body-wrap"><article id="post-一次诡异的网络问题追查记录" class="article article-type-post" itemscope itemprop="blogPost">
+  
+    <div class="article-meta">
+      <a href="/2016/01/23/一次诡异的网络问题追查记录/" class="article-date">
+  	<time datetime="2016-01-23T13:05:36.000Z" itemprop="datePublished">2016-01-23</time>
+</a>
+    </div>
+  
+  <div class="article-inner">
+    
+      <input type="hidden" class="isFancy" />
+    
+    
+      <header class="article-header">
+        
+  
+    <h1 class="article-title" itemprop="name">
+      一次诡异的网络问题追查记录
+    </h1>
+  
+
+      </header>
+      
+      <div class="article-info article-info-post">
+        
+	<div class="article-tag tagcloud">
+		<ul class="article-tag-list"><li class="article-tag-list-item"><a class="article-tag-list-link" href="/tags/linux/">linux</a></li><li class="article-tag-list-item"><a class="article-tag-list-link" href="/tags/tcp/">tcp</a></li></ul>
+	</div>
+
+        
+
+        <div class="clearfix"></div>
+      </div>
+      
+    
+    <div class="article-entry" itemprop="articleBody">
+      
+        <p>关键词：tcp，3秒，arp，丢包，重传</p>
+<h1 id="u8D77_u56E0"><a href="#u8D77_u56E0" class="headerlink" title="起因"></a>起因</h1><p>事情的起因是我们给线上的一个服务新加了30台服务器，然后就有用户反馈说我们的查询性能开始变得不稳定，一些平时很快的请求经常要卡好久才能返回。照理说加机器服务应该变得更快才是，怎么会变得更不稳定呢，这让我们一开始也不是很愿意相信这个事实。直到我们自己也试着查了几次，确实有用户反馈的不稳定的现象，有时候query能在几百毫秒就返回结果，有时候却需要10几20秒之久。追查问题开始之前，我先介绍下系统的服务模型，系统由broker和worker组成，每台机器都有broker和worker两个进程。broker负责接受用户请求，然后将请求转发至需要的worker上，等这些worker返回结果后对这些结果进行merge最终返回给用户。系统最前端使用了VIP对broker进行负载均衡。</p>
+<h1 id="u8868_u9762_u539F_u56E0"><a href="#u8868_u9762_u539F_u56E0" class="headerlink" title="表面原因"></a>表面原因</h1><p>由于我们已经对系统接收到的所有query的运行情况进行了埋点和耗时统计，表面原因也很容易定位，请求确实耗在了我们系统内部，就在broker把请求发送给worker的时候。先插一段broker访问worker的核心伪代码：<br><figure class="highlight stylus"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br></pre></td><td class="code"><pre><span class="line"><span class="keyword">for</span> worker <span class="keyword">in</span> all related workers:</span><br><span class="line">    pool = <span class="function"><span class="title">setup_connection_pool</span><span class="params">(worker)</span></span> <span class="comment">// 对每个worker初始化一个连接池，并且发起连接请求</span></span><br><span class="line">    connection = <span class="function"><span class="title">get_connection_from_pool</span><span class="params">(pool)</span></span> <span class="comment">// 从连接池中随便拿一个连接</span></span><br><span class="line">    <span class="function"><span class="title">wait_connection_ready</span><span class="params">(connection)</span></span> <span class="comment">// 等待连接真正可用</span></span><br><span class="line">    <span class="function"><span class="title">send_request</span><span class="params">(connection)</span></span></span><br></pre></td></tr></table></figure></p>
+<p>在我们对这些代码增加了一些耗时埋点和分析后，原因最终确定在了第4行wait_connection_ready这，经常需要花上3秒左右的时间，才能等这些连接最终建立成功。那为什么一个query会花上10几20秒？这是因为我们的query几乎会涉及到所有的worker，经常会有那么几个worker会复现这个现象，累加起来后就达到这么长时间了。<br><a id="more"></a></p>
+<h1 id="u73B0_u8C61_u5206_u6790"><a href="#u73B0_u8C61_u5206_u6790" class="headerlink" title="现象分析"></a>现象分析</h1><p>第一反应是，一个connection没理由需要花上3秒时间才能真正建立，是不是等待连接建立的代码写错了，或者是内部使用了一些锁导致哪里被不正常的lock住了。仔细排查后我们排除掉了这个原因，我们只是简单的使用了Netty的ConnectionFuture，在网上搜索了一番也没见有人反映过跟着类似的问题，要是这么容易复现那Netty也未免太挫了点。虽然在研究代码过程中，基本已经排除了有任何锁或者IO的行为会引起这个耗时的发生，但是为了保险起见，我还是去实现了一个比较纯粹的Netty Http Client，来验证是否能复现这个问题。核心代码就下面几行：<br><figure class="highlight processing"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br><span class="line">16</span><br><span class="line">17</span><br><span class="line">18</span><br><span class="line">19</span><br></pre></td><td class="code"><pre><span class="line"><span class="keyword">for</span> (<span class="keyword">String</span> host : hosts.<span class="built_in">split</span>(<span class="string">","</span>)) &#123;</span><br><span class="line">    System.out.<span class="built_in">println</span>(<span class="string">"setup "</span> + <span class="built_in">size</span> + <span class="string">" connections with "</span> + host);</span><br><span class="line">    <span class="keyword">final</span> AtomicInteger completedSize = <span class="keyword">new</span> AtomicInteger(<span class="number">0</span>);</span><br><span class="line">    <span class="keyword">long</span> start = System.nanoTime();</span><br><span class="line">    <span class="keyword">for</span> (<span class="built_in">int</span> i = <span class="number">0</span>; i &lt; <span class="built_in">size</span>; ++i) &#123;</span><br><span class="line">        ChannelFuture future = bootstrap.connect(<span class="keyword">new</span> InetSocketAddress(host, port));</span><br><span class="line">        future.addListener(<span class="keyword">new</span> ChannelFutureListener() &#123;</span><br><span class="line">            @Override</span><br><span class="line">            <span class="keyword">public</span> <span class="keyword">void</span> operationComplete(ChannelFuture future) <span class="keyword">throws</span> Exception &#123;</span><br><span class="line">                completedSize.addAndGet(<span class="number">1</span>);</span><br><span class="line">            &#125;</span><br><span class="line">        &#125;);</span><br><span class="line">    &#125;</span><br><span class="line">    <span class="keyword">while</span> (completedSize.<span class="built_in">get</span>() != <span class="built_in">size</span>) &#123;</span><br><span class="line">        Thread.sleep(<span class="number">1</span>);</span><br><span class="line">    &#125;</span><br><span class="line">    <span class="keyword">long</span> end = System.nanoTime();</span><br><span class="line">    System.out.<span class="built_in">println</span>(<span class="string">"setup "</span> + <span class="built_in">size</span> + <span class="string">" connections, used time: "</span> + (end - start) / <span class="number">1000000.0</span> + <span class="string">" ms"</span>);</span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure></p>
+<p>为了模拟原始代码的连接池的行为，这里选择对一台机器同时建立好几个连接。在使用这段代码访问线上的worker进程后，问题果然还是复现了。比如对每个worker建立10个连接，有些worker在几个毫秒内就成功建立，但总有些worker需要花费3秒才能建立成功。同时，在使用这个简单的程序复现问题的过程中，还发现了一个一开始并未注意到的现象：一台机器总是第一次对其他机器发起连接请求时才会有这个问题。如果短时间内程序跑上第二遍，第三遍，就又观察不到这个现象了。</p>
+<h1 id="u673A_u5668_u95EE_u9898_uFF1F"><a href="#u673A_u5668_u95EE_u9898_uFF1F" class="headerlink" title="机器问题？"></a>机器问题？</h1><p>其实在调查过程中，有个疑问一直徘徊在我心头，为什么老机器没问题而新加了30台机器后就出问题了？而且在上面复现的过程中，如果我从老机器发起连接请求，都能很快的就返回，而使用新机器发起连接请求，就总会有那么几台机器需要耗时3秒，而且这些耗时久的，也都是新要来的机器。这让我不得不怀疑新给的这批机器是否有问题。于是我在开着<a href="http://tsar.taobao.org/" target="_blank" rel="external">tsar</a>实时监测网络情况下运行了我的复现代码，很快就发现了不对劲。这是我的程序的输出：<br><figure class="highlight cpp"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br></pre></td><td class="code"><pre><span class="line">setup <span class="number">10</span> connections with host1</span><br><span class="line">setup <span class="number">10</span> connections, used time: <span class="number">3.173193</span> ms</span><br><span class="line">setup <span class="number">10</span> connections with host2</span><br><span class="line">setup <span class="number">10</span> connections, used time: <span class="number">3001.584501</span> ms</span><br><span class="line">setup <span class="number">10</span> connections with host3</span><br><span class="line">setup <span class="number">10</span> connections, used time: <span class="number">3.232675</span> ms</span><br><span class="line">setup <span class="number">10</span> connections with host4</span><br><span class="line">setup <span class="number">10</span> connections, used time: <span class="number">3001.711274</span> ms</span><br><span class="line">setup <span class="number">10</span> connections with host5</span><br><span class="line">setup <span class="number">10</span> connections, used time: <span class="number">7.295985</span> ms</span><br></pre></td></tr></table></figure></p>
+<p>对应的这段时间内tsar的输出：<br><img src="/images/tcp_retran.png" alt=""><br>两台机器建立连接花了3秒，对应了两次网络重传率的飙高，我对机器问题的怀疑又新增了几分。为了有更确凿的证据，我使用了tcpdump来对网络传输的包进行了分析，情况也正如我所预料：<br><img src="/images/tcpdump_retran.png" alt=""><br>看来确实是机器问题了，带着查清问题的喜悦和一丝对机器的吐槽，我拿着这些证据找了PE和公司里的网络支持。</p>
+<h1 id="u771F_u7684_u662F_u673A_u5668_u95EE_u9898_uFF1F"><a href="#u771F_u7684_u662F_u673A_u5668_u95EE_u9898_uFF1F" class="headerlink" title="真的是机器问题？"></a>真的是机器问题？</h1><p>接下来的几天，我一直在等着网络的同学来向我”自首“，承认他们的这批机器存在网络问题，有可能是哪里网线松了？也有可能是搭建网路时哪里的配置没弄对？但我没等来这一天，虽然网络支持的同事也一直很尽心尽力的在帮我定位问题，但是却始终找不到问题的根源所在，硬件检测也似乎没有什么发现，什么网线松了之类的也只不过是我的无端臆想。从一开始定位到问题的激动情绪慢慢恢复过来的时候，我也开始感觉到了一丝的不对劲。既然那边还迟迟没有结论，我觉得有几个疑问还是要继续的进行一下探索。为什么是3秒？为什么是我们的服务（因为这批机器在给我们之前跑过其他服务，也没见同事有过这个抱怨），如果是网络问题，应该老早就体现出来了才对。难道是我们的worker端的问题？虽然我觉得这个概率不大，因为之前我们的服务已经在线上跑过一阵，从来没有发生过这种现象。不过想到这点了，还是有必要做一下验证。验证的办法很简单，把我们的worker换成其他成熟的http server，看还会不会有这个问题。想了下，最成熟可靠又简单的莫过于nginx了，于是我在这批机器上全部都起了nginx服务，并使用我上面写的客户端来连接这些nginx。问题还是复现了！到目前为止，这个问题已经完全与我们的线上服务撇清了关系，理了理思路，总结了下目前为止发现到的现象：</p>
+<ul>
+<li>使用一个简单的Netty Http Client对一台nginx服务器同时发起多个http连接请求，会有比较大的概率需要3秒左右的时间才能成功建立连接</li>
+<li>在短时间内再使用这个client对同一台服务器发起多个http连接，所有的连接都能瞬间建立</li>
+<li>在休息一段时间后再次实验，又能观察到连接耗时3秒的现象</li>
+</ul>
+<p>这个时候，网络的同学也基本上给出了他们的结论，网络没有问题。至此，事情又陷入了僵局。。。</p>
+<h1 id="u91CD_u6E29TCP"><a href="#u91CD_u6E29TCP" class="headerlink" title="重温TCP"></a>重温TCP</h1><p>一边是一个成熟的http server，另一边也是一个成熟的java开源网络库，当在它们之间建立几个连接的时候，却需要花上整整3秒的时间。这要是出去说估计都没人信，却真真切切的发生在我的眼前。既然硬件没有问题，网络的设备也没有问题，用到的两个东西出问题的概率也微乎其微，那看起来很有可能是内核或者tcp的一些参数设置的问题了。请来了公司的网络大牛@灵皋帮忙一起定位问题，自己也开始一边复习tcp的基础知识，一边一遍一遍的使用tcpdump进行抓包分析，希望能看到新的一些蛛丝马迹。这里推荐下陈皓写的<a href="http://coolshell.cn/articles/11564.html" target="_blank" rel="external">TCP 的那些事儿（上）</a>和<a href="http://coolshell.cn/articles/11609.html" target="_blank" rel="external">TCP 的那些事儿（下）</a>，通俗易懂也不失一些深度。不过在这更正下那篇文章中关于SYN超时的结论，SYN包的超时时间是基于RTT并且使用一个比较复杂的公式计算得出的，在我们的服务器上第一次超时时间一般是3秒（参见上面的tcpdump图），而不是该文中说的是1秒。虽然学习并巩固了不少tcp相关的知识，但是却没有任何一点看起来和这个问题有关。TCP拥塞？才几个syn包有什么好拥塞的。小包合并？是有可能，但是就算有合并一般也就等个几十毫秒也就放了，况且在我们的现象里确实有丢包的情况发生。SYN攻击防范？才几个SYN包有啥好防范的，而且我们的服务器已经把<strong>net.ipv4.tcp_max_syn_backlog</strong>这个参数调的比较大了。虽然没有获得有关这个问题的直接帮助，但是顺势学习了一把tcp的基础知识，感觉还是收获满满，要不怎么大家都说查问题是最好的学习途径呢。<br>不过随着追查的深入，问题的一些表现也变得越发诡异了起来。在某些复现的场景下，并没有观察到丢包的现象，取而代之的SYN包的乱序。如下图所示：<br><img src="/images/tcpdump_syn_outoforder.png" alt=""><br>虽然在时间上也是相同的延迟了3秒，但却没有检测到丢包或者重传的现象，反而有一些让人更想不通的表现。一般来说，我们在同时建立好多连接时，客户端的端口号会是连续并且递增的，但从图中可以看到，端口在3秒后发生了回滚，看起来客户端在3秒后才发起了本应该在3秒前就应该发出的连接请求。还有一个是tcp包头里的时间戳：TSVal，也在3秒后发生了回滚，如果这几个SYN包是3秒前应该发的那批，那为什么当时没发？为什么也没有检测到TCP重传或者丢包？<br>虽然出现了更多似乎没法解释的现象，但是一遍一遍的tcpdump还是有了新的发现。</p>
+<h1 id="ARP"><a href="#ARP" class="headerlink" title="ARP"></a>ARP</h1><p>在复现的tcpdump中，经常能发现类似下面的现象（但不是全部）：<br><img src="/images/arp.png" alt=""><br>ARP是啥？先来看一段百度百科上的定义：<br><figure class="highlight armasm"><table><tr><td class="gutter"><pre><span class="line">1</span><br></pre></td><td class="code"><pre><span class="line">地址解析协议，即ARP（<span class="keyword">Address </span>Resolution Protocol），是根据<span class="literal">IP</span>地址获取物理地址的一个TCP/<span class="literal">IP</span>协议</span><br></pre></td></tr></table></figure></p>
+<p>OSI模型把网络工作分为七层，IP地址在OSI模型的第三层，MAC地址在第二层，彼此不直接打交道。在通过以太网发送IP数据包时，需要先封装第三层（32位IP地址）、第二层（48位MAC地址）的报头，但由于发送时只知道目标IP地址，不知道其MAC地址，又不能跨第二、三层，所以需要使用地址解析协议。平时只关注TCP/IP一类的东西，对再底层的东西知之甚少，以前学过的基本也全还给老师了，正好趁此机会再复习复习。ARP的工作原理比较简单，但是有一点比较关键，ARP是有缓存的，缓存了本地以太网内的一些IP和MAC地址的映射关系。想来也是，如果每次要传输数据时都使用ARP协议确定对方的MAC地址，那效率岂不是太低了。既然是缓存，那肯定会有缓存更新和淘汰算法，具体可以参考这篇StackOverflow上的<a href="http://stackoverflow.com/questions/15372011/configuring-arp-age-timeout" target="_blank" rel="external">问答帖</a>。基本结论是，arp的缓存一般10分钟左右会淘汰。咦，10分钟？好像我之前在复现问题的时候，同一台机器在第一次复现之后，一般都得等上10分钟左右才会复现第二次。另外，新给的机器IP都是连续的，网络的同学提过这批机器应该是挂在同一个路由器下的，这也验证了这些机器之间会互相进行ARP请求，但和老的那些机器之间就不会有ARP，因为属于不同的路由器，在发请求的时候在路由表的指引下应该直接就通过网关出去了。我隐隐的觉得，这个问题，肯定和这个ARP有关系。</p>
+<h1 id="u771F_u76F8"><a href="#u771F_u76F8" class="headerlink" title="真相"></a>真相</h1><p>同时在另一边，在@灵皋大神的帮助下，也使用了不少平时接触不多的工具来定位这个问题，iptable，ip monitor等。通过分析这些工具的表现，矛头也渐渐的向ip和mac这个方向靠拢了，但最后的那一层窗户纸却还是没有办法捅开。直到我百无聊赖的又试了试我的复现程序。因为之前都是同时建立10个连接来复现这个问题的，我就是想试试跟连接数是否有关系。实验结果表明，如果同时建立的连接数不超过3个，就完全不能复现这个现象。我随口跟@灵皋大神提了下这个最新的现象，同时把之前跟ARP的种种疑点跟他说了一遍，他终于捅开了这最后一层窗户纸：“好像arp那边有个包的缓存队列，好像默认值就是3”。<br>这句话犹如醍醐灌顶，我赶紧再去仔细查了查arp的man page，终于在一个不起眼的小角落发现了一句话：<br><figure class="highlight applescript"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br></pre></td><td class="code"><pre><span class="line">unres_qlen (<span class="keyword">since</span> Linux <span class="number">2.2</span>)</span><br><span class="line">    The maximum <span class="type">number</span> <span class="keyword">of</span> packets which may be queued <span class="keyword">for</span> each</span><br><span class="line">    unresolved address <span class="keyword">by</span> other network layers.  Defaults <span class="keyword">to</span> <span class="number">3.</span></span><br></pre></td></tr></table></figure></p>
+<p>尼玛！原来就是这货！所有的现象在这一刻终于都得到了解释，为什么有有时候有丢包的现象，有时候却是单纯的重传，为什么3个连接以下就不会出问题。一次ARP请求虽然比较快，但还是需要一些时间的，在这短暂的时间内如果有对目标IP的多个包，会被系统缓存在一个队列中，如果队列放不下了的话就直接丢掉，连tcpdump也抓不到这个丢弃的行为。丢的有可能是发起TCP连接时的SYN包，也可能是第二次握手里server返回的SYN-ACK包。这些诡异的现象大致可以用下面这几种情况来描述（客户端是A，服务端是B，我用“认识”来描述该机器的ARP的缓存中是否有对方IP的存在）：</p>
+<ol>
+<li>A认识B，B也认识A： 这种情况下的通信完全不会有问题。</li>
+<li>A不认识B，B认识A： 如果A在ARP请求成功前请求超过3个SYN包，tcpdump表现为只成功发出过3个SYN，被丢掉的几个SYN会表现为从未发出，但是在3秒后会进行重传。这就是上面观察到的端口和时间戳回滚的现象。</li>
+<li>A认识B，B不认识A： A的所有SYN包都能顺利的发出，但B在回SYN-ACK前需要发起ARP请求。如果在ARP成功前有超过3个SYN-ACK包堆积，则只能有3个能顺利回到A。tcpdump表现为A的有一些SYN丢包，在3秒后进行重传。</li>
+<li>A不认识B，B不认识A： 最复杂的情况，上面两种丢包或者重传都有可能发生。</li>
+</ol>
+<p>据悉，内核已经在之后的版本修改了这一参数，不使用包的个数来限定队列大小，而是使用包的字节数来作为限制条件。确定了问题的根源后，对应的解决办法就很简单了，修改系统的配置文件即可。其实redhat的官方调优指南中，也有一项<a href="https://access.redhat.com/documentation/en-US/Red_Hat_Enterprise_MRG/1.3/html/Realtime_Tuning_Guide/sect-Realtime_Tuning_Guide-General_System_Tuning-Reduce_TCP_performance_spikes.html" target="_blank" rel="external">针对这个配置的调整</a>，不经历这些幺蛾子，还真不能理解这些看似简单的一句配置后面的故事。</p>
+<h1 id="u540E_u8BB0"><a href="#u540E_u8BB0" class="headerlink" title="后记"></a>后记</h1><p>一个看似简单的线上问题，其实底下却蕴含着这么多底层的网络和内核知识。有幸在工作中能接触到这些可能其他人几乎不可能碰到的问题，随着问题表现的牵引，也拿起了很多以前可能学过但早就还给老师了的知识。通过查问题学到的东西，都是最最难忘的。</p>
+
+      
+    </div>
+    
+  </div>
+  
+    
+<nav id="article-nav">
+  
+  
+    <a href="/2016/01/17/turning-the-database-inside-out/" id="article-nav-older" class="article-nav-link-wrap">
+      <div class="article-nav-title">（未完成）数据库给流计算带来的启发 - 《Turning the database inside-out》</div>
+      <strong class="article-nav-caption">></strong>
+    </a>
+  
+</nav>
+
+  
+</article>
+
+
+<div class="share_jia">
+	<!-- JiaThis Button BEGIN -->
+	<div class="jiathis_style">
+		<span class="jiathis_txt">分享到: &nbsp; </span>
+		<a class="jiathis_button_facebook"></a> 
+    <a class="jiathis_button_twitter"></a>
+    <a class="jiathis_button_plus"></a> 
+    <a class="jiathis_button_tsina"></a>
+		<a class="jiathis_button_cqq"></a>
+		<a class="jiathis_button_douban"></a>
+		<a class="jiathis_button_weixin"></a>
+		<a class="jiathis_button_tumblr"></a>
+    <a href="http://www.jiathis.com/share" class="jiathis jiathis_txt jtico jtico_jiathis" target="_blank"></a>
+	</div>
+	<script type="text/javascript" src="http://v3.jiathis.com/code/jia.js?uid=1405949716054953" charset="utf-8"></script>
+	<!-- JiaThis Button END -->
+</div>
+
+
+
+
+
+
+<div class="duoshuo">
+	<!-- 多说评论框 start -->
+	<div class="ds-thread" data-thread-key="一次诡异的网络问题追查记录" data-title="一次诡异的网络问题追查记录" data-url="http://kurtyoung.github.io/2016/01/23/一次诡异的网络问题追查记录/"></div>
+	<!-- 多说评论框 end -->
+	<!-- 多说公共JS代码 start (一个网页只需插入一次) -->
+	<script type="text/javascript">
+	var duoshuoQuery = {short_name:"kurtyoung"};
+	(function() {
+		var ds = document.createElement('script');
+		ds.type = 'text/javascript';ds.async = true;
+		ds.src = (document.location.protocol == 'https:' ? 'https:' : 'http:') + '//static.duoshuo.com/embed.js';
+		ds.charset = 'UTF-8';
+		(document.getElementsByTagName('head')[0] 
+		 || document.getElementsByTagName('body')[0]).appendChild(ds);
+	})();
+	</script>
+	<!-- 多说公共JS代码 end -->
+</div>
+
+
+
+
+</div>
+      <footer id="footer">
+  <div class="outer">
+    <div id="footer-info">
+    	<div class="footer-left">
+    		&copy; 2016 Kurt Young
+		<span id="busuanzi_container_site_pv">
+		    本站总访问量<span id="busuanzi_value_site_pv"></span>次
+		</span>
+		<span id="busuanzi_container_site_uv">
+		  本站访客数<span id="busuanzi_value_site_uv"></span>人次
+		</span>
+    	</div>
+      	<div class="footer-right">
+      		<a href="http://hexo.io/" target="_blank">Hexo</a>  Theme <a href="https://github.com/litten/hexo-theme-yilia" target="_blank">Yilia</a> by Litten
+      	</div>
+    </div>
+  </div>
+</footer>
+    </div>
+    
+  <link rel="stylesheet" href="/fancybox/jquery.fancybox.css" type="text/css">
+
+
+<script>
+	var yiliaConfig = {
+		fancybox: true,
+		mathjax: true,
+		animate: true,
+		isHome: false,
+		isPost: true,
+		isArchive: false,
+		isTag: false,
+		isCategory: false,
+		open_in_new: false
+	}
+</script>
+<script src="http://7.url.cn/edu/jslib/comb/require-2.1.6,jquery-1.9.1.min.js" type="text/javascript"></script>
+<script src="/js/main.js" type="text/javascript"></script>
+
+
+
+
+
+
+<script type="text/x-mathjax-config">
+MathJax.Hub.Config({
+    tex2jax: {
+        inlineMath: [ ['$','$'], ["\\(","\\)"]  ],
+        processEscapes: true,
+        skipTags: ['script', 'noscript', 'style', 'textarea', 'pre', 'code']
+    }
+});
+
+MathJax.Hub.Queue(function() {
+    var all = MathJax.Hub.getAllJax(), i;
+    for(i=0; i < all.length; i += 1) {
+        all[i].SourceElement().parentNode.className += ' has-jax';                 
+    }       
+});
+</script>
+
+<script type="text/javascript" src="http://cdn.mathjax.org/mathjax/latest/MathJax.js?config=TeX-AMS-MML_HTMLorMML">
+</script>
+
+
+
+<script async src="https://dn-lbstatics.qbox.me/busuanzi/2.3/busuanzi.pure.mini.js"></script>
+
+  </div>
+</body>
+</html>

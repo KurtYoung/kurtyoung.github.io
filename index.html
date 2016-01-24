@@ -4,19 +4,19 @@
   <meta charset="utf-8">
   
   <meta http-equiv="X-UA-Compatible" content="IE=edge" >
-  <title>Kurt&#39;s blog</title>
+  <title>Kurt&#39;s Blog</title>
   <meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1">
   <meta name="description" content="码农，Data nerd">
 <meta property="og:type" content="website">
-<meta property="og:title" content="Kurt's blog">
+<meta property="og:title" content="Kurt's Blog">
 <meta property="og:url" content="http://kurtyoung.github.io/index.html">
-<meta property="og:site_name" content="Kurt's blog">
+<meta property="og:site_name" content="Kurt's Blog">
 <meta property="og:description" content="码农，Data nerd">
 <meta name="twitter:card" content="summary">
-<meta name="twitter:title" content="Kurt's blog">
+<meta name="twitter:title" content="Kurt's Blog">
 <meta name="twitter:description" content="码农，Data nerd">
   
-    <link rel="alternative" href="/atom.xml" title="Kurt&#39;s blog" type="application/atom+xml">
+    <link rel="alternative" href="/atom.xml" title="Kurt&#39;s Blog" type="application/atom+xml">
   
   
     <link rel="icon" href="/favicon.png">
@@ -105,7 +105,7 @@
 				
 				<section class="switch-part switch-part2">
 					<div class="widget tagcloud" id="js-tagcloud">
-						<a href="/tags/architecture/" style="font-size: 10px;">architecture</a> <a href="/tags/笔记/" style="font-size: 10px;">笔记</a>
+						<a href="/tags/architecture/" style="font-size: 20px;">architecture</a> <a href="/tags/linux/" style="font-size: 10px;">linux</a> <a href="/tags/tcp/" style="font-size: 10px;">tcp</a> <a href="/tags/流计算/" style="font-size: 10px;">流计算</a> <a href="/tags/笔记/" style="font-size: 20px;">笔记</a>
 					</div>
 				</section>
 				
@@ -168,6 +168,132 @@
 </nav>
 
       <div class="body-wrap">
+  
+    <article id="post-一次诡异的网络问题追查记录" class="article article-type-post" itemscope itemprop="blogPost">
+  
+    <div class="article-meta">
+      <a href="/2016/01/23/一次诡异的网络问题追查记录/" class="article-date">
+  	<time datetime="2016-01-23T13:05:36.000Z" itemprop="datePublished">2016-01-23</time>
+</a>
+    </div>
+  
+  <div class="article-inner">
+    
+      <input type="hidden" class="isFancy" />
+    
+    
+      <header class="article-header">
+        
+  
+    <h1 itemprop="name">
+      <a class="article-title" href="/2016/01/23/一次诡异的网络问题追查记录/">一次诡异的网络问题追查记录</a>
+    </h1>
+  
+
+      </header>
+      
+    
+    <div class="article-entry" itemprop="articleBody">
+      
+        <p>关键词：tcp，3秒，arp，丢包，重传</p>
+<h1 id="u8D77_u56E0"><a href="#u8D77_u56E0" class="headerlink" title="起因"></a>起因</h1><p>事情的起因是我们给线上的一个服务新加了30台服务器，然后就有用户反馈说我们的查询性能开始变得不稳定，一些平时很快的请求经常要卡好久才能返回。照理说加机器服务应该变得更快才是，怎么会变得更不稳定呢，这让我们一开始也不是很愿意相信这个事实。直到我们自己也试着查了几次，确实有用户反馈的不稳定的现象，有时候query能在几百毫秒就返回结果，有时候却需要10几20秒之久。追查问题开始之前，我先介绍下系统的服务模型，系统由broker和worker组成，每台机器都有broker和worker两个进程。broker负责接受用户请求，然后将请求转发至需要的worker上，等这些worker返回结果后对这些结果进行merge最终返回给用户。系统最前端使用了VIP对broker进行负载均衡。</p>
+<h1 id="u8868_u9762_u539F_u56E0"><a href="#u8868_u9762_u539F_u56E0" class="headerlink" title="表面原因"></a>表面原因</h1><p>由于我们已经对系统接收到的所有query的运行情况进行了埋点和耗时统计，表面原因也很容易定位，请求确实耗在了我们系统内部，就在broker把请求发送给worker的时候。先插一段broker访问worker的核心伪代码：<br><figure class="highlight stylus"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br></pre></td><td class="code"><pre><span class="line"><span class="keyword">for</span> worker <span class="keyword">in</span> all related workers:</span><br><span class="line">    pool = <span class="function"><span class="title">setup_connection_pool</span><span class="params">(worker)</span></span> <span class="comment">// 对每个worker初始化一个连接池，并且发起连接请求</span></span><br><span class="line">    connection = <span class="function"><span class="title">get_connection_from_pool</span><span class="params">(pool)</span></span> <span class="comment">// 从连接池中随便拿一个连接</span></span><br><span class="line">    <span class="function"><span class="title">wait_connection_ready</span><span class="params">(connection)</span></span> <span class="comment">// 等待连接真正可用</span></span><br><span class="line">    <span class="function"><span class="title">send_request</span><span class="params">(connection)</span></span></span><br></pre></td></tr></table></figure></p>
+<p>在我们对这些代码增加了一些耗时埋点和分析后，原因最终确定在了第4行wait_connection_ready这，经常需要花上3秒左右的时间，才能等这些连接最终建立成功。那为什么一个query会花上10几20秒？这是因为我们的query几乎会涉及到所有的worker，经常会有那么几个worker会复现这个现象，累加起来后就达到这么长时间了。<br>
+      
+    </div>
+    
+    <div class="article-info article-info-index">
+      
+      
+	<div class="article-tag tagcloud">
+		<ul class="article-tag-list"><li class="article-tag-list-item"><a class="article-tag-list-link" href="/tags/linux/">linux</a></li><li class="article-tag-list-item"><a class="article-tag-list-link" href="/tags/tcp/">tcp</a></li></ul>
+	</div>
+
+      
+
+      
+        <p class="article-more-link">
+          <a  href="/2016/01/23/一次诡异的网络问题追查记录/#more">more >></a>
+        </p>
+      
+      <div class="clearfix"></div>
+    </div>
+    
+  </div>
+  
+</article>
+
+
+
+
+
+
+
+
+
+  
+    <article id="post-turning-the-database-inside-out" class="article article-type-post" itemscope itemprop="blogPost">
+  
+    <div class="article-meta">
+      <a href="/2016/01/17/turning-the-database-inside-out/" class="article-date">
+  	<time datetime="2016-01-17T08:55:37.000Z" itemprop="datePublished">2016-01-17</time>
+</a>
+    </div>
+  
+  <div class="article-inner">
+    
+      <input type="hidden" class="isFancy" />
+    
+    
+      <header class="article-header">
+        
+  
+    <h1 itemprop="name">
+      <a class="article-title" href="/2016/01/17/turning-the-database-inside-out/">（未完成）数据库给流计算带来的启发 - 《Turning the database inside-out》</a>
+    </h1>
+  
+
+      </header>
+      
+    
+    <div class="article-entry" itemprop="articleBody">
+      
+        <p>原文链接：<a href="http://www.confluent.io/blog/turning-the-database-inside-out-with-apache-samza/">http://www.confluent.io/blog/turning-the-database-inside-out-with-apache-samza/</a></p>
+<h1 id="u524D_u8A00"><a href="#u524D_u8A00" class="headerlink" title="前言"></a>前言</h1><p>传统数据库发展了几十年，着实有不少思路和技术能让我们细细品味。本文是<a href="http://martin.kleppmann.com/"> Martin Kleppmann</a>在<a href="https://thestrangeloop.com/archive/2014">Strange Loop 2014</a>上的一个精彩发言，从几个基本的数据库技术出发，逐步延伸至目前火热的流计算思想，令人深省。</p>
+<h1 id="u4EC0_u4E48_u662F_u6570_u636E_u5E93"><a href="#u4EC0_u4E48_u662F_u6570_u636E_u5E93" class="headerlink" title="什么是数据库"></a>什么是数据库</h1><p>不管是什么品牌什么类型的数据库，不管是oracle，MySql亦或是现在流行的NoSql，基本都可以使用下面这句话来概括：<br><figure class="highlight pf"><table><tr><td class="gutter"><pre><span class="line">1</span><br></pre></td><td class="code"><pre><span class="line">Databases are <span class="keyword">global</span>, shared, mutable <span class="keyword">state</span></span><br></pre></td></tr></table></figure></p>
+<p>为什么说它使一个全局共享的可变的状态呢？我们可以来看一下一个典型的数据库应用的场景：<br><img src="/images/turning-the-database-inside-out-1.png" alt=""><br>一个数据库应用主要由客户端，后台以及DB组成。客户端发起请求，又后台接受请求并加以一些自定义逻辑，最终将数据持久化至DB或者从DB获取需要的数据。一般而言我们会把后台系统设计成为“无状态”系统，这样做有很多好处，比如你可以更容易的扩展后台，提高并发，使负载更均衡等。对于科幻端而言，使用无状态的HTTP协议也是一种很流行的做法，毕竟把状态存储在客户端八成也不是什么特别好的做法。这样一来，系统所需的一些“状态信息“，只能存在DB里了。这样做了以后，数据库就成了一个海量的全局共享的状态存储，随之而来还有并发，锁竞争，死锁等各种各样的问题。<br>那么我们为什么一定要这样去设计我们的系统呢？在回答这个问题之前，我们先来看四个看起来与这个问题并没有什么关系的东西。<br>
+      
+    </div>
+    
+    <div class="article-info article-info-index">
+      
+      
+	<div class="article-tag tagcloud">
+		<ul class="article-tag-list"><li class="article-tag-list-item"><a class="article-tag-list-link" href="/tags/architecture/">architecture</a></li><li class="article-tag-list-item"><a class="article-tag-list-link" href="/tags/流计算/">流计算</a></li><li class="article-tag-list-item"><a class="article-tag-list-link" href="/tags/笔记/">笔记</a></li></ul>
+	</div>
+
+      
+
+      
+        <p class="article-more-link">
+          <a  href="/2016/01/17/turning-the-database-inside-out/#more">more >></a>
+        </p>
+      
+      <div class="clearfix"></div>
+    </div>
+    
+  </div>
+  
+</article>
+
+
+
+
+
+
+
+
+
   
     <article id="post-kappa-architecture" class="article article-type-post" itemscope itemprop="blogPost">
   
