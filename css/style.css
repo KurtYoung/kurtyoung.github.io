@@ -751,7 +751,8 @@ a {
 }
 .archives .archive-article {
   margin-left: 200px;
-  padding: 20px 0;
+  padding-top: 15px;
+  padding-bottom: 5px;
   border-bottom: 1px solid #eee;
   border-top: 1px solid #fff;
   position: relative;
@@ -817,7 +818,7 @@ a {
 }
 .archive-article-inner .article-meta .archive-article-date {
   cursor: default;
-  font-size: 12px;
+  font-size: 15px;
   margin-bottom: 5px;
   margin-top: -10px;
 }
@@ -1361,7 +1362,8 @@ a {
 }
 .archives .archive-article {
   margin-left: 200px;
-  padding: 20px 0;
+  padding-top: 15px;
+  padding-bottom: 5px;
   border-bottom: 1px solid #eee;
   border-top: 1px solid #fff;
   position: relative;
@@ -1427,7 +1429,7 @@ a {
 }
 .archive-article-inner .article-meta .archive-article-date {
   cursor: default;
-  font-size: 12px;
+  font-size: 15px;
   margin-bottom: 5px;
   margin-top: -10px;
 }
