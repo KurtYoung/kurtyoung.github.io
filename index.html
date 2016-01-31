@@ -249,7 +249,7 @@
         
   
     <h1 itemprop="name">
-      <a class="article-title" href="/2016/01/17/turning-the-database-inside-out/">（未完成）数据库给流计算带来的启发 - 《Turning the database inside-out》</a>
+      <a class="article-title" href="/2016/01/17/turning-the-database-inside-out/">数据库给流计算带来的启发 - 《Turning the database inside-out》</a>
     </h1>
   
 
@@ -261,7 +261,7 @@
         <p>原文链接：<a href="http://www.confluent.io/blog/turning-the-database-inside-out-with-apache-samza/">http://www.confluent.io/blog/turning-the-database-inside-out-with-apache-samza/</a></p>
 <h1 id="u524D_u8A00"><a href="#u524D_u8A00" class="headerlink" title="前言"></a>前言</h1><p>传统数据库发展了几十年，着实有不少思路和技术能让我们细细品味。本文是<a href="http://martin.kleppmann.com/"> Martin Kleppmann</a>在<a href="https://thestrangeloop.com/archive/2014">Strange Loop 2014</a>上的一个精彩发言，从几个基本的数据库技术出发，逐步延伸至目前火热的流计算思想，令人深省。</p>
 <h1 id="u4EC0_u4E48_u662F_u6570_u636E_u5E93"><a href="#u4EC0_u4E48_u662F_u6570_u636E_u5E93" class="headerlink" title="什么是数据库"></a>什么是数据库</h1><p>不管是什么品牌什么类型的数据库，不管是oracle，MySql亦或是现在流行的NoSql，基本都可以使用下面这句话来概括：<br><figure class="highlight pf"><table><tr><td class="gutter"><pre><span class="line">1</span><br></pre></td><td class="code"><pre><span class="line">Databases are <span class="keyword">global</span>, shared, mutable <span class="keyword">state</span></span><br></pre></td></tr></table></figure></p>
-<p>为什么说它使一个全局共享的可变的状态呢？我们可以来看一下一个典型的数据库应用的场景：<br><img src="/images/turning-the-database-inside-out-1.png" alt=""><br>一个数据库应用主要由客户端，后台以及DB组成。客户端发起请求，又后台接受请求并加以一些自定义逻辑，最终将数据持久化至DB或者从DB获取需要的数据。一般而言我们会把后台系统设计成为“无状态”系统，这样做有很多好处，比如你可以更容易的扩展后台，提高并发，使负载更均衡等。对于科幻端而言，使用无状态的HTTP协议也是一种很流行的做法，毕竟把状态存储在客户端八成也不是什么特别好的做法。这样一来，系统所需的一些“状态信息“，只能存在DB里了。这样做了以后，数据库就成了一个海量的全局共享的状态存储，随之而来还有并发，锁竞争，死锁等各种各样的问题。<br>那么我们为什么一定要这样去设计我们的系统呢？在回答这个问题之前，我们先来看四个看起来与这个问题并没有什么关系的东西。<br>
+<p>为什么说它使一个全局共享的可变的状态呢？我们可以来看一下一个典型的数据库应用的场景：<br><img src="/images/turning-the-database-inside-out-1.png" alt=""><br>一个数据库应用主要由客户端，后台以及DB组成。客户端发起请求，由后台接受请求并加以一些自定义逻辑，最终将数据持久化至DB或者从DB获取需要的数据。一般而言我们会把后台系统设计成为“无状态”系统，这样做有很多好处，比如你可以更容易的扩展后台，提高并发，使负载更均衡等。对于客户端而言，使用无状态的HTTP协议也是一种很流行的做法，毕竟把状态存储在客户端八成也不是什么特别好的主意。这样一来，系统所需的一些“状态信息“，就只能存在DB里了。这样做了以后，数据库就成了一个海量的全局共享的状态存储，随之而来还有并发，锁竞争，死锁等各种各样的问题。<br>那么我们为什么一定要这样去设计我们的系统呢？在回答这个问题之前，我们先来看四个看起来与这个问题并没有什么关系的东西。<br>
       
     </div>
     
